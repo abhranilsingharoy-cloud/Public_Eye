@@ -36,6 +36,10 @@ const DEFAULT_ISSUES = [
     updatedAt: new Date(Date.now() - 4 * 3600000).toISOString(),
     aiCategorized: true,
     aiSeverity: "high",
+    media: [
+      { type: "image", url: "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&q=80&w=800" },
+      { type: "image", url: "https://images.unsplash.com/photo-1584985551804-9a842f65a12f?auto=format&fit=crop&q=80&w=800" }
+    ],
     aiSafetyTips: "Avoid driving over this pothole at speeds above 15mph. Switch lanes early if traffic allows, and warn cyclists.",
     aiSuggestedAction: "Dispatch public works crew to lay down hot-mix asphalt patching.",
     aiTags: ["Road Hazard", "Traffic Swerve", "Valencia St"],
@@ -404,6 +408,10 @@ Provide the output strictly matching the schema with category, severity, safetyT
     updatedAt: now,
     imageUrl: imageUrl || undefined,
     videoUrl: videoUrl || undefined,
+    media: [
+      ...(imageUrl ? [{ type: 'image' as const, url: imageUrl }] : []),
+      ...(videoUrl ? [{ type: 'video' as const, url: videoUrl }] : [])
+    ],
     aiCategorized,
     aiSeverity,
     aiSafetyTips,

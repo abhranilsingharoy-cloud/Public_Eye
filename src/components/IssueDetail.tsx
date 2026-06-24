@@ -21,7 +21,12 @@ import {
   Wrench,
   Check,
   Share2,
-  Cpu
+  Cpu,
+  ChevronLeft,
+  ChevronRight,
+  Maximize2,
+  X,
+  Play
 } from 'lucide-react';
 
 interface IssueDetailProps {
@@ -37,6 +42,160 @@ interface IssueDetailProps {
     resolutionImageUrl?: string, 
     resolutionVideoUrl?: string
   ) => void;
+}
+
+function MediaCarousel({ media }: { media: { type: 'image' | 'video', url: string }[] }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+
+  if (!media || media.length === 0) return null;
+
+  const nextSlide = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev === media.length - 1 ? 0 : prev + 1));
+  };
+
+  const prevSlide = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev === 0 ? media.length - 1 : prev - 1));
+  };
+
+  const currentMedia = media[currentIndex];
+
+  const renderMedia = (m: { type: 'image' | 'video', url: string }, inLightbox = false) => {
+    if (m.type === 'video') {
+      return (
+        <video 
+          src={m.url} 
+          controls={inLightbox} 
+          autoPlay={inLightbox}
+          loop
+          muted={!inLightbox}
+          className={`w-full h-full object-cover ${inLightbox ? 'object-contain max-h-[85vh]' : ''}`}
+        />
+      );
+    }
+    return (
+      <img 
+        src={m.url} 
+        alt="Report Evidence" 
+        className={`w-full h-full object-cover ${inLightbox ? 'object-contain max-h-[85vh]' : ''}`} 
+        referrerPolicy="no-referrer" 
+      />
+    );
+  };
+
+  return (
+    <>
+      <div className="relative w-full h-56 rounded-xl overflow-hidden bg-black group mb-6 border border-white/10">
+        {/* Main View */}
+        <div 
+          className="w-full h-full cursor-pointer relative"
+          onClick={() => setIsLightboxOpen(true)}
+        >
+          {renderMedia(currentMedia)}
+          {currentMedia.type === 'video' && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
+              <Play className="w-12 h-12 text-white opacity-80" />
+            </div>
+          )}
+          
+          <div className="absolute top-3 right-3 bg-black/60 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+            <Maximize2 className="w-4 h-4 text-white" />
+          </div>
+        </div>
+
+        {/* Carousel Controls */}
+        {media.length > 1 && (
+          <>
+            <button 
+              onClick={prevSlide}
+              className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm border border-white/10"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button 
+              onClick={nextSlide}
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm border border-white/10"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+            
+            {/* Indicators */}
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+              {media.map((_, idx) => (
+                <div 
+                  key={idx} 
+                  className={`h-1.5 rounded-full transition-all ${idx === currentIndex ? 'w-4 bg-amber-500' : 'w-1.5 bg-white/50'}`}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Lightbox Overlay */}
+      <AnimatePresence>
+        {isLightboxOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center p-4"
+          >
+            <button 
+              onClick={() => setIsLightboxOpen(false)}
+              className="absolute top-6 right-6 text-white/70 hover:text-white bg-white/5 hover:bg-white/10 p-2 rounded-full transition-colors z-50"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            <div className="relative w-full max-w-5xl aspect-video flex items-center justify-center">
+              {renderMedia(currentMedia, true)}
+
+              {media.length > 1 && (
+                <>
+                  <button 
+                    onClick={prevSlide}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full backdrop-blur-md transition-colors"
+                  >
+                    <ChevronLeft className="w-8 h-8" />
+                  </button>
+                  <button 
+                    onClick={nextSlide}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full backdrop-blur-md transition-colors"
+                  >
+                    <ChevronRight className="w-8 h-8" />
+                  </button>
+                </>
+              )}
+            </div>
+            
+            {/* Lightbox Thumbnails */}
+            {media.length > 1 && (
+              <div className="absolute bottom-6 flex gap-2 overflow-x-auto max-w-[90vw] p-2">
+                {media.map((m, idx) => (
+                  <button 
+                    key={idx}
+                    onClick={() => setCurrentIndex(idx)}
+                    className={`relative w-16 h-12 rounded-md overflow-hidden flex-shrink-0 border-2 transition-all ${idx === currentIndex ? 'border-amber-500 scale-110' : 'border-transparent opacity-50 hover:opacity-100'}`}
+                  >
+                    {m.type === 'video' ? (
+                      <div className="w-full h-full bg-slate-900 flex items-center justify-center">
+                        <Play className="w-5 h-5 text-white" />
+                      </div>
+                    ) : (
+                      <img src={m.url} alt="" className="w-full h-full object-cover" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
 }
 
 export default function IssueDetail({
@@ -349,6 +508,11 @@ export default function IssueDetail({
 
       {/* Main content body (scrollable) */}
       <div className="p-6 flex-1 overflow-y-auto space-y-6">
+        {/* Media Carousel */}
+        {issue.media && issue.media.length > 0 && (
+          <MediaCarousel media={issue.media} />
+        )}
+
         {/* Description */}
         <div>
           <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 font-mono">Citizen Report Details</h4>

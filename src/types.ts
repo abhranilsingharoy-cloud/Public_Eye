@@ -45,6 +45,7 @@ export interface Issue {
   updatedAt: string;
   imageUrl?: string;
   videoUrl?: string;
+  media?: { type: 'image' | 'video'; url: string }[];
   aiCategorized: boolean;
   aiSeverity: SeverityLevel;
   aiSafetyTips?: string;
