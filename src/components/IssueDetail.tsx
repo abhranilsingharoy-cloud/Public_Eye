@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Issue, Comment, VerificationLog, IssueStatus } from '../types';
 import CameraMediaCapture from './CameraMediaCapture';
 import { motion, AnimatePresence } from 'motion/react';
+import { LineChart, Line, ResponsiveContainer, Tooltip } from 'recharts';
 import {
   ThumbsUp,
   MessageSquare,
@@ -54,6 +55,26 @@ export default function IssueDetail({
   const [resolutionMediaUrl, setResolutionMediaUrl] = useState<string | null>(null);
   const [resolutionMediaType, setResolutionMediaType] = useState<'image' | 'video' | null>(null);
   const [shareFeedback, setShareFeedback] = useState<string | null>(null);
+
+  // Generate stable mock trend data based on issue ID
+  const sparklineData = React.useMemo(() => {
+    let seed = 0;
+    for (let i = 0; i < issue.id.length; i++) {
+      seed += issue.id.charCodeAt(i);
+    }
+    const data = [];
+    let currentVal = 5 + (seed % 10);
+    for (let i = 6; i >= 0; i--) {
+      data.push({
+        day: `${i === 0 ? 'Today' : i + 'd ago'}`,
+        reports: currentVal
+      });
+      // Random walk
+      const change = ((seed + i * 17) % 5) - 2;
+      currentVal = Math.max(0, currentVal + change);
+    }
+    return data.reverse();
+  }, [issue.id]);
 
   const handleShare = async () => {
     const shareUrl = `${window.location.origin}${window.location.pathname}?issueId=${issue.id}`;
@@ -332,6 +353,44 @@ export default function IssueDetail({
         <div>
           <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 font-mono">Citizen Report Details</h4>
           <p className="text-sm text-slate-300 leading-relaxed bg-white/[0.02] border border-white/5 p-4 rounded-xl">{issue.description}</p>
+        </div>
+
+        {/* 7-Day Trend Sparkline */}
+        <div>
+          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 font-mono flex items-center gap-1.5">
+            <Activity className="w-3.5 h-3.5 text-amber-500" /> 
+            Vicinity Trend (7-Day)
+          </h4>
+          <div className="bg-white/[0.02] border border-white/5 p-4 rounded-xl h-24 flex items-center justify-between gap-4">
+            <div className="w-full h-full min-w-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={sparklineData}>
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)', fontSize: '12px', borderRadius: '8px' }}
+                    itemStyle={{ color: '#f59e0b', fontWeight: 'bold' }}
+                    labelStyle={{ color: '#94a3b8' }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="reports" 
+                    name="Reports"
+                    stroke="#f59e0b" 
+                    strokeWidth={2} 
+                    dot={{ r: 2, fill: '#f59e0b', strokeWidth: 0 }}
+                    activeDot={{ r: 4, fill: '#f59e0b' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="shrink-0 text-right pr-2">
+              <span className="block text-2xl font-bold text-white">
+                {sparklineData[sparklineData.length - 1].reports}
+              </span>
+              <span className="block text-[9px] text-slate-400 uppercase font-mono tracking-wider">
+                Active Now
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Status Tracker Timeline */}
