@@ -47,10 +47,11 @@ export default function IssueDetail({
   const [shareFeedback, setShareFeedback] = useState<string | null>(null);
 
   const handleShare = async () => {
+    const shareUrl = `${window.location.origin}${window.location.pathname}?issueId=${issue.id}`;
     const shareData = {
       title: `PublicEye: ${issue.title}`,
       text: `🚨 [Valencia-Dolores] Help audit: "${issue.title}"\nCategory: ${issue.category.replace('_', ' ')}\nStatus: ${issue.status.toUpperCase()}\nLocation: Lat ${issue.latitude.toFixed(5)}, Lng ${issue.longitude.toFixed(5)}\n\n"${issue.description}"`,
-      url: window.location.href
+      url: shareUrl
     };
 
     if (navigator.share) {
@@ -123,11 +124,38 @@ export default function IssueDetail({
   const getSeverityBadge = (lvl: string) => {
     switch (lvl) {
       case 'high':
-        return <span className="bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Critical</span>;
+        return (
+          <motion.span
+            key={`high-${issue.id}`}
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"
+          >
+            Critical
+          </motion.span>
+        );
       case 'medium':
-        return <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Moderate</span>;
+        return (
+          <motion.span
+            key={`medium-${issue.id}`}
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"
+          >
+            Moderate
+          </motion.span>
+        );
       default:
-        return <span className="bg-white/5 text-slate-300 border border-white/5 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Standard</span>;
+        return (
+          <motion.span
+            key={`standard-${issue.id}`}
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white/5 text-slate-300 border border-white/5 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"
+          >
+            Standard
+          </motion.span>
+        );
     }
   };
 
@@ -184,18 +212,35 @@ export default function IssueDetail({
   const currentStepIdx = steps.findIndex(s => s.status === issue.status);
 
   return (
-    <div className="bg-white/[0.02] border border-white/5 rounded-2xl shadow-2xl overflow-hidden flex flex-col h-full">
+    <motion.div
+      key={issue.id}
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+      className="bg-white/[0.02] border border-white/5 rounded-2xl shadow-2xl overflow-hidden flex flex-col h-full"
+    >
       {/* Detail Header */}
       <div className="p-6 border-b border-white/5 bg-white/[0.01]">
         <div className="flex items-center justify-between gap-3 mb-3">
-          <span className="text-[11px] font-semibold text-amber-500 uppercase tracking-widest bg-amber-500/10 border border-amber-500/20 rounded-md px-2.5 py-1">
+          <motion.span
+            key={`category-${issue.id}`}
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="text-[11px] font-semibold text-amber-500 uppercase tracking-widest bg-amber-500/10 border border-amber-500/20 rounded-md px-2.5 py-1"
+          >
             {issue.category.replace('_', ' ')}
-          </span>
+          </motion.span>
           <div className="flex items-center gap-1.5">
             {getSeverityBadge(issue.aiSeverity)}
-            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${getStatusDetails(issue.status).color}`}>
+            <motion.span
+              key={issue.status}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+              className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${getStatusDetails(issue.status).color}`}
+            >
               {getStatusDetails(issue.status).label}
-            </span>
+            </motion.span>
           </div>
         </div>
 
@@ -249,30 +294,34 @@ export default function IssueDetail({
           <div className="relative flex items-center justify-between">
             {/* Background line */}
             <div className="absolute left-[10%] right-[10%] top-[16px] h-0.5 bg-white/5 -z-10" />
-            <div
-              className="absolute left-[10%] top-[16px] h-0.5 bg-amber-500 -z-10 transition-all duration-300"
-              style={{ width: `${(currentStepIdx / (steps.length - 1)) * 80}%` }}
+            <motion.div
+              className="absolute left-[10%] top-[16px] h-0.5 bg-amber-500 -z-10"
+              initial={{ width: 0 }}
+              animate={{ width: `${(currentStepIdx / (steps.length - 1)) * 80}%` }}
+              transition={{ type: 'spring', stiffness: 80, damping: 15 }}
             />
 
             {steps.map((step, idx) => {
               const isPast = idx < currentStepIdx;
               const isCurrent = idx === currentStepIdx;
-              const isUpcoming = idx > currentStepIdx;
               const timestamp = getStageTimestamp(step.status);
 
               return (
                 <div key={step.status} className="flex flex-col items-center flex-1 z-10">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border transition-all duration-300 ${
-                      isPast
-                        ? 'bg-amber-500 border-amber-500 text-black shadow-md'
-                        : isCurrent
-                        ? 'bg-black border-amber-500 text-amber-500 ring-4 ring-amber-500/15 font-black'
-                        : 'bg-white/[0.02] border-white/5 text-slate-500'
+                  <motion.div
+                    animate={{
+                      scale: isCurrent ? 1.1 : 1,
+                      backgroundColor: isPast ? '#f59e0b' : isCurrent ? '#000000' : 'rgba(255, 255, 255, 0.02)',
+                      borderColor: isPast || isCurrent ? '#f59e0b' : 'rgba(255, 255, 255, 0.05)',
+                      color: isPast ? '#000000' : isCurrent ? '#f59e0b' : '#64748b',
+                    }}
+                    transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border ${
+                      isCurrent ? 'ring-4 ring-amber-500/15 font-black' : ''
                     }`}
                   >
                     {isPast ? <Check className="w-4 h-4 stroke-[3]" /> : idx + 1}
-                  </div>
+                  </motion.div>
                   <span className={`text-[10px] font-semibold mt-1.5 font-mono ${isCurrent ? 'text-amber-500 font-bold' : isPast ? 'text-slate-200' : 'text-slate-500'}`}>
                     {step.label}
                   </span>
@@ -291,15 +340,63 @@ export default function IssueDetail({
           </div>
 
           {/* Quick resolution note display */}
-          {issue.status === 'resolved' && issue.resolutionNotes && (
-            <div className="mt-4 bg-emerald-500/10 border border-emerald-500/20 p-3.5 rounded-xl text-xs text-emerald-400">
-              <span className="font-bold text-emerald-200 block mb-1">✅ RESOLUTION LOG:</span>
-              <p className="italic leading-relaxed">"{issue.resolutionNotes}"</p>
-              {issue.resolvedAt && (
-                <span className="block mt-2 font-mono text-[9px] text-emerald-500">
-                  Closed at: {new Date(issue.resolvedAt).toLocaleString()}
-                </span>
-              )}
+          <AnimatePresence>
+            {issue.status === 'resolved' && issue.resolutionNotes && (
+              <motion.div
+                initial={{ opacity: 0, height: 0, y: -10 }}
+                animate={{ opacity: 1, height: 'auto', y: 0 }}
+                exit={{ opacity: 0, height: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+                className="mt-4 bg-emerald-500/10 border border-emerald-500/20 p-3.5 rounded-xl text-xs text-emerald-400 overflow-hidden"
+              >
+                <span className="font-bold text-emerald-200 block mb-1">✅ RESOLUTION LOG:</span>
+                <p className="italic leading-relaxed">"{issue.resolutionNotes}"</p>
+                {issue.resolvedAt && (
+                  <span className="block mt-2 font-mono text-[9px] text-emerald-500">
+                    Closed at: {new Date(issue.resolvedAt).toLocaleString()}
+                  </span>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Chronological Vertical Status Timeline list */}
+          {issue.statusHistory && issue.statusHistory.length > 0 && (
+            <div className="mt-6 border-t border-white/5 pt-4 space-y-3">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono block mb-2">Chronological Progress Logs</span>
+              <div className="relative pl-4 border-l border-white/5 space-y-3.5">
+                {issue.statusHistory.map((h, index) => {
+                  const details = getStatusDetails(h.status);
+                  const isLast = index === (issue.statusHistory?.length || 0) - 1;
+                  return (
+                    <motion.div
+                      key={h.status + h.timestamp}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="relative text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-1"
+                    >
+                      {/* Timeline dot marker */}
+                      <div className={`absolute -left-[21px] top-1.5 w-2.5 h-2.5 rounded-full border ${
+                        isLast 
+                          ? 'bg-amber-500 border-amber-400 ring-4 ring-amber-500/10' 
+                          : 'bg-slate-700 border-slate-600'
+                      }`} />
+                      
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border font-mono ${details.color}`}>
+                          {details.label}
+                        </span>
+                        <span className="text-slate-400 font-medium">{details.desc}</span>
+                      </div>
+                      
+                      <span className="text-[10px] text-slate-500 font-mono sm:text-right">
+                        {new Date(h.timestamp).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </motion.div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -386,27 +483,37 @@ export default function IssueDetail({
           </div>
 
           <div className="space-y-2 max-h-[160px] overflow-y-auto mb-3">
-            {issue.verifications && issue.verifications.length > 0 ? (
-              issue.verifications.map((v) => (
-                <div key={v.id} className="bg-white/[0.02] border border-white/5 p-2.5 rounded-lg text-xs flex items-start gap-2.5">
-                  <Shield className={`w-4 h-4 mt-0.5 shrink-0 ${v.type === 'verify' ? 'text-amber-500' : 'text-red-500'}`} />
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-slate-200 font-mono">{v.user.split('@')[0]}</span>
-                      <span className={`text-[9px] font-bold uppercase rounded px-1 ${v.type === 'verify' ? 'bg-amber-500/10 text-amber-400' : 'bg-red-500/10 text-red-400'}`}>
-                        {v.type === 'verify' ? 'Verified' : 'Disputed'}
-                      </span>
+            <AnimatePresence initial={false}>
+              {issue.verifications && issue.verifications.length > 0 ? (
+                issue.verifications.map((v) => (
+                  <motion.div
+                    layout
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    key={v.id}
+                    className="bg-white/[0.02] border border-white/5 p-2.5 rounded-lg text-xs flex items-start gap-2.5"
+                  >
+                    <Shield className={`w-4 h-4 mt-0.5 shrink-0 ${v.type === 'verify' ? 'text-amber-500' : 'text-red-500'}`} />
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-slate-200 font-mono">{v.user.split('@')[0]}</span>
+                        <span className={`text-[9px] font-bold uppercase rounded px-1 ${v.type === 'verify' ? 'bg-amber-500/10 text-amber-400' : 'bg-red-500/10 text-red-400'}`}>
+                          {v.type === 'verify' ? 'Verified' : 'Disputed'}
+                        </span>
+                      </div>
+                      <p className="text-slate-300 mt-0.5">{v.notes}</p>
+                      <span className="text-[9px] text-slate-500 font-mono mt-1 block">{new Date(v.createdAt).toLocaleDateString()}</span>
                     </div>
-                    <p className="text-slate-300 mt-0.5">{v.notes}</p>
-                    <span className="text-[9px] text-slate-500 font-mono mt-1 block">{new Date(v.createdAt).toLocaleDateString()}</span>
-                  </div>
+                  </motion.div>
+                ))
+              ) : (
+                <div className="text-center py-4 bg-white/[0.01] border border-dashed border-white/5 rounded-xl text-xs text-slate-500">
+                  No formal neighborhood auditing logs yet. Be the first to verify or dispute this report!
                 </div>
-              ))
-            ) : (
-              <div className="text-center py-4 bg-white/[0.01] border border-dashed border-white/5 rounded-xl text-xs text-slate-500">
-                No formal neighborhood auditing logs yet. Be the first to verify or dispute this report!
-              </div>
-            )}
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Action buttons bar */}
@@ -453,101 +560,119 @@ export default function IssueDetail({
           </div>
 
           {/* Collapsible Verify Auditing form */}
-          {showVerifyForm && (
-            <motion.form
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              onSubmit={(e) => handleVerifySubmit(e, 'verify')}
-              className="mt-3 bg-white/[0.02] border border-white/5 rounded-xl p-3"
-            >
-              <label className="block text-xs font-bold text-slate-300 mb-1.5 font-mono">Formal Verification Log</label>
-              <textarea
-                value={verifyNotes}
-                onChange={(e) => setVerifyNotes(e.target.value)}
-                placeholder="Write specific auditing observation notes... (e.g., 'Inspected on foot. Pothole is active and blocking traffic')"
-                className="w-full bg-black/40 border border-white/5 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 text-slate-200 placeholder-slate-500 resize-none h-16"
-              />
-              <div className="flex items-center gap-1.5 mt-2 justify-end">
-                <button
-                  type="submit"
-                  className="bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs px-2.5 py-1.5 rounded-md cursor-pointer"
-                >
-                  Verify Active
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => handleVerifySubmit(e, 'dispute')}
-                  className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 text-xs px-2.5 py-1.5 rounded-md cursor-pointer"
-                >
-                  Flag as Dispute
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowVerifyForm(false)}
-                  className="bg-white/5 hover:bg-white/10 text-slate-300 text-xs px-2.5 py-1.5 rounded-md cursor-pointer"
-                >
-                  Cancel
-                </button>
-              </div>
-            </motion.form>
-          )}
+          <AnimatePresence>
+            {showVerifyForm && (
+              <motion.form
+                initial={{ opacity: 0, height: 0, y: -8 }}
+                animate={{ opacity: 1, height: 'auto', y: 0 }}
+                exit={{ opacity: 0, height: 0, y: -8 }}
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
+                onSubmit={(e) => handleVerifySubmit(e, 'verify')}
+                className="mt-3 bg-white/[0.02] border border-white/5 rounded-xl p-3 overflow-hidden"
+              >
+                <label className="block text-xs font-bold text-slate-300 mb-1.5 font-mono">Formal Verification Log</label>
+                <textarea
+                  value={verifyNotes}
+                  onChange={(e) => setVerifyNotes(e.target.value)}
+                  placeholder="Write specific auditing observation notes... (e.g., 'Inspected on foot. Pothole is active and blocking traffic')"
+                  className="w-full bg-black/40 border border-white/5 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 text-slate-200 placeholder-slate-500 resize-none h-16"
+                />
+                <div className="flex items-center gap-1.5 mt-2 justify-end">
+                  <button
+                    type="submit"
+                    className="bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs px-2.5 py-1.5 rounded-md cursor-pointer"
+                  >
+                    Verify Active
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => handleVerifySubmit(e, 'dispute')}
+                    className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 text-xs px-2.5 py-1.5 rounded-md cursor-pointer"
+                  >
+                    Flag as Dispute
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowVerifyForm(false)}
+                    className="bg-white/5 hover:bg-white/10 text-slate-300 text-xs px-2.5 py-1.5 rounded-md cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </motion.form>
+            )}
+          </AnimatePresence>
 
           {/* Collapsible Resolution form */}
-          {showResolveForm && (
-            <motion.form
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              onSubmit={handleResolveSubmit}
-              className="mt-3 bg-emerald-950/20 border border-emerald-500/25 rounded-xl p-3"
-            >
-              <label className="block text-xs font-bold text-emerald-300 mb-1.5 font-mono">Closing Resolution Action Notes</label>
-              <textarea
-                value={resolveNotes}
-                onChange={(e) => setResolveNotes(e.target.value)}
-                placeholder="Write specific resolution details... (e.g., 'Asphalt patching is complete. Debris swept.')"
-                className="w-full bg-black/40 border border-white/5 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-200 placeholder-slate-500 resize-none h-16"
-                required
-              />
-              <div className="flex items-center gap-1.5 mt-2 justify-end">
-                <button
-                  type="submit"
-                  className="bg-emerald-500 hover:bg-emerald-600 text-black font-bold text-xs px-3 py-1.5 rounded-md cursor-pointer"
-                >
-                  Confirm Resolution
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowResolveForm(false)}
-                  className="bg-white/5 hover:bg-white/10 text-slate-300 text-xs px-3 py-1.5 rounded-md cursor-pointer"
-                >
-                  Cancel
-                </button>
-              </div>
-            </motion.form>
-          )}
+          <AnimatePresence>
+            {showResolveForm && (
+              <motion.form
+                initial={{ opacity: 0, height: 0, y: -8 }}
+                animate={{ opacity: 1, height: 'auto', y: 0 }}
+                exit={{ opacity: 0, height: 0, y: -8 }}
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
+                onSubmit={handleResolveSubmit}
+                className="mt-3 bg-emerald-950/20 border border-emerald-500/25 rounded-xl p-3 overflow-hidden"
+              >
+                <label className="block text-xs font-bold text-emerald-300 mb-1.5 font-mono">Closing Resolution Action Notes</label>
+                <textarea
+                  value={resolveNotes}
+                  onChange={(e) => setResolveNotes(e.target.value)}
+                  placeholder="Write specific resolution details... (e.g., 'Asphalt patching is complete. Debris swept.')"
+                  className="w-full bg-black/40 border border-white/5 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-200 placeholder-slate-500 resize-none h-16"
+                  required
+                />
+                <div className="flex items-center gap-1.5 mt-2 justify-end">
+                  <button
+                    type="submit"
+                    className="bg-emerald-500 hover:bg-emerald-600 text-black font-bold text-xs px-3 py-1.5 rounded-md cursor-pointer"
+                  >
+                    Confirm Resolution
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowResolveForm(false)}
+                    className="bg-white/5 hover:bg-white/10 text-slate-300 text-xs px-3 py-1.5 rounded-md cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </motion.form>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Conversation Thread */}
         <div>
           <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2.5 font-mono">District Discussion Board</h4>
           <div className="space-y-3 mb-4 max-h-[220px] overflow-y-auto pr-1">
-            {issue.comments && issue.comments.length > 0 ? (
-              issue.comments.map((comment) => (
-                <div key={comment.id} className="bg-white/[0.01] border border-white/5 rounded-xl p-3 text-xs leading-relaxed">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-bold text-amber-500 font-mono">{comment.author.split('@')[0]}</span>
-                    <span className="text-[10px] text-slate-500 font-mono">
-                      {new Date(comment.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <p className="text-slate-300 font-normal">{comment.text}</p>
+            <AnimatePresence initial={false}>
+              {issue.comments && issue.comments.length > 0 ? (
+                issue.comments.map((comment) => (
+                  <motion.div
+                    layout
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    key={comment.id}
+                    className="bg-white/[0.01] border border-white/5 rounded-xl p-3 text-xs leading-relaxed"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-bold text-amber-500 font-mono">{comment.author.split('@')[0]}</span>
+                      <span className="text-[10px] text-slate-500 font-mono">
+                        {new Date(comment.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <p className="text-slate-300 font-normal">{comment.text}</p>
+                  </motion.div>
+                ))
+              ) : (
+                <div className="text-center py-4 text-slate-500 text-xs">
+                  No discussion entries yet. Start the conversation with local neighbors!
                 </div>
-              ))
-            ) : (
-              <div className="text-center py-4 text-slate-500 text-xs">
-                No discussion entries yet. Start the conversation with local neighbors!
-              </div>
-            )}
+              )}
+            </AnimatePresence>
           </div>
 
           <form onSubmit={handleCommentSubmit} className="flex gap-2">
@@ -567,6 +692,6 @@ export default function IssueDetail({
           </form>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

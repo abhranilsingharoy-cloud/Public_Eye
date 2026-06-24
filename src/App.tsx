@@ -30,6 +30,52 @@ import {
 } from 'lucide-react';
 
 export default function App() {
+  // Splash Screen transition state
+  const [showSplash, setShowSplash] = useState(true);
+  const [splashProgress, setSplashProgress] = useState(0);
+  const [splashStatus, setSplashStatus] = useState('Initializing cognitive architectures...');
+
+  useEffect(() => {
+    let progressInterval = setInterval(() => {
+      setSplashProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(progressInterval);
+          return 100;
+        }
+        return prev + 1;
+      });
+    }, 35); // 100 * 35ms = 3.5 seconds
+
+    const timer1 = setTimeout(() => {
+      setSplashStatus('Agent 1: Aligning Multimodal Computer Vision networks...');
+    }, 800);
+
+    const timer2 = setTimeout(() => {
+      setSplashStatus('Agent 2: Mapping spatial database duplicates & clusters...');
+    }, 1600);
+
+    const timer3 = setTimeout(() => {
+      setSplashStatus('Agent 3 & 4: Grounding Ward routing & SLA limits...');
+    }, 2400);
+
+    const timer4 = setTimeout(() => {
+      setSplashStatus('Ready. Granting civic access to Valencia-Dolores District...');
+    }, 3200);
+
+    const timerSplash = setTimeout(() => {
+      setShowSplash(false);
+    }, 3800);
+
+    return () => {
+      clearInterval(progressInterval);
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+      clearTimeout(timer4);
+      clearTimeout(timerSplash);
+    };
+  }, []);
+
   // Tabs: 'map' | 'predictive' | 'leaderboard' | 'assistant' | 'workspace' | 'pipeline'
   const [activeTab, setActiveTab] = useState<'map' | 'predictive' | 'leaderboard' | 'assistant' | 'workspace' | 'pipeline'>('map');
 
@@ -119,7 +165,14 @@ export default function App() {
   };
 
   useEffect(() => {
-    fetchIssues(true);
+    const params = new URLSearchParams(window.location.search);
+    const urlIssueId = params.get('issueId');
+    if (urlIssueId) {
+      setSelectedIssueId(urlIssueId);
+      fetchIssues(false);
+    } else {
+      fetchIssues(true);
+    }
   }, []);
 
   // Post a new issue
@@ -317,7 +370,98 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-slate-200 flex flex-col font-sans antialiased">
+    <AnimatePresence mode="wait">
+      {showSplash ? (
+        <motion.div
+          key="splash"
+          initial={{ opacity: 1 }}
+          exit={{ opacity: 0, scale: 1.05 }}
+          transition={{ duration: 0.5, ease: 'easeInOut' }}
+          className="fixed inset-0 z-50 bg-[#060606] flex flex-col items-center justify-center p-6 text-slate-200 select-none overflow-hidden"
+        >
+          {/* Cosmic Ambient background glow */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-amber-500/15 blur-[120px] rounded-full pointer-events-none" />
+
+          <div className="max-w-md w-full text-center relative z-10 flex flex-col items-center">
+            {/* Spinning custom abstract radar/loader logo representing civic surveillance */}
+            <motion.div
+              initial={{ rotate: 0, scale: 0.8 }}
+              animate={{ rotate: 360, scale: 1 }}
+              transition={{
+                rotate: { repeat: Infinity, duration: 15, ease: 'linear' },
+                scale: { duration: 1, ease: 'easeOut' }
+              }}
+              className="relative w-24 h-24 mb-8 flex items-center justify-center"
+            >
+              <div className="absolute inset-0 rounded-full border-4 border-dashed border-amber-500/20" />
+              <div className="absolute inset-2 rounded-full border border-double border-amber-500/40 animate-pulse" />
+              <div className="absolute inset-4 rounded-full border border-dotted border-amber-500/60" />
+              <div className="w-8 h-8 bg-amber-500 rounded-sm rotate-45 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                <span className="text-black font-black text-sm -rotate-45 font-mono">P</span>
+              </div>
+            </motion.div>
+
+            {/* Title / Description */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+            >
+              <h1 className="text-3xl font-black text-white tracking-tight flex items-center justify-center gap-2 mb-1">
+                PublicEye
+              </h1>
+              <p className="text-xs text-amber-500 font-mono tracking-widest uppercase mb-6">
+                Autonomous Civic Technology Platform
+              </p>
+            </motion.div>
+
+            {/* Custom high-tech segmented terminal progress log */}
+            <div className="w-full bg-white/[0.02] border border-white/5 rounded-2xl p-5 mb-6 text-left">
+              <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono uppercase mb-2">
+                <span>System Health Logs</span>
+                <span>{splashProgress}%</span>
+              </div>
+              
+              {/* Progress bar container */}
+              <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mb-4">
+                <motion.div
+                  className="h-full bg-gradient-to-r from-amber-500 to-amber-400"
+                  style={{ width: `${splashProgress}%` }}
+                />
+              </div>
+
+              {/* Status stream */}
+              <div className="space-y-1.5 h-16 flex flex-col justify-center">
+                <motion.div
+                  key={splashStatus}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-start gap-2 text-xs font-medium text-slate-300"
+                >
+                  <span className="text-amber-500 font-mono">▸</span>
+                  <span className="leading-snug">{splashStatus}</span>
+                </motion.div>
+                <div className="text-[10px] text-slate-500 font-mono flex items-center gap-1.5">
+                  <span className="inline-block w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping" />
+                  <span>Valencia-Dolores District Ward Index: ONLINE</span>
+                </div>
+              </div>
+            </div>
+
+            {/* System footer badge */}
+            <div className="text-[10px] text-slate-600 font-mono tracking-widest uppercase">
+              District Core Node • v1.4.2-Secure
+            </div>
+          </div>
+        </motion.div>
+      ) : (
+        <motion.div
+          key="app-content"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="min-h-screen bg-[#0a0a0a] text-slate-200 flex flex-col font-sans antialiased"
+        >
       {/* Top Professional Header Navigation */}
       <header className="sticky top-0 z-40 bg-[#0a0a0a] border-b border-white/5 px-6 py-4 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -894,6 +1038,8 @@ export default function App() {
           </button>
         </div>
       )}
-    </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
