@@ -19,19 +19,44 @@ import {
   MessageSquare,
   Shield,
   Clock,
-  ExternalLink
+  ExternalLink,
+  LogIn,
+  RefreshCw
 } from 'lucide-react';
+import { auth, googleSignIn } from '../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 interface SafeGuardHubProps {
   currentUser: string;
 }
 
 export default function SafeGuardHub({ currentUser }: SafeGuardHubProps) {
+  const [firebaseUser, setFirebaseUser] = useState<any>(null);
+  const [dbLoading, setDbLoading] = useState(false);
+
+  // Sync auth state
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setFirebaseUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const getHeaders = async () => {
+    if (!auth.currentUser) return {};
+    const token = await auth.currentUser.getIdToken();
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+  };
+
   // SOS States
   const [sosActive, setSosActive] = useState(false);
   const [sosCountdown, setSosCountdown] = useState(5);
   const [sosDispatched, setSosDispatched] = useState(false);
   const [sosLogs, setSosLogs] = useState<string[]>([]);
+  const [sosId, setSosId] = useState<number | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
 
   // Check-In States
@@ -46,7 +71,7 @@ export default function SafeGuardHub({ currentUser }: SafeGuardHubProps) {
   const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number }>({ lat: 39.4699, lng: -0.3763 });
 
   // Safety checklist status
-  const [safetyTips, setSafetyTips] = useState([
+  const [safetyTips, setSafetyTips] = useState<any[]>([
     { id: 1, text: 'Confirm companion tracking status', done: false },
     { id: 2, text: 'Map well-lit streets using the Heatmap', done: true },
     { id: 3, text: 'Confirm local Safe Zone checkpoints', done: false },
@@ -135,59 +160,219 @@ export default function SafeGuardHub({ currentUser }: SafeGuardHubProps) {
     }
   }, []);
 
+  // Load live DB data if logged in
+  const fetchDbData = async () => {
+    if (!auth.currentUser) return;
+    setDbLoading(true);
+    try {
+      const headers = await getHeaders();
+      
+      // Fetch checklist
+      const checklistRes = await fetch('/api/safeguard/checklist', { headers });
+      if (checklistRes.ok) {
+        const checklistData = await checklistRes.json();
+        setSafetyTips(checklistData);
+      }
+
+      // Fetch active/past SOS signals
+      const sosRes = await fetch('/api/safeguard/sos', { headers });
+      if (sosRes.ok) {
+        const sosData = await sosRes.json();
+        const activeSignal = sosData.find((s: any) => s.status === 'active');
+        if (activeSignal) {
+          setSosActive(true);
+          setSosDispatched(true);
+          setSosCountdown(0);
+          setSosLogs(activeSignal.logs || []);
+          setSosId(activeSignal.id);
+        } else {
+          setSosActive(false);
+          setSosDispatched(false);
+          setSosLogs([]);
+          setSosId(null);
+        }
+      }
+
+      // Fetch checkins
+      const checkinsRes = await fetch('/api/safeguard/checkins', { headers });
+      if (checkinsRes.ok) {
+        const checkinsData = await checkinsRes.json();
+        if (checkinsData.length > 0) {
+          setCheckedInZone(checkinsData[0].zoneName);
+          setCheckInTime(new Date(checkinsData[0].checkedInAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load database safeguard info:', err);
+    } finally {
+      setDbLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (firebaseUser) {
+      fetchDbData();
+    }
+  }, [firebaseUser]);
+
   // SOS Countdown Timer
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (sosActive && sosCountdown > 0) {
-      timer = setTimeout(() => {
-        setSosCountdown(sosCountdown - 1);
-        // Add realistic logs
-        if (sosCountdown === 5) {
-          setSosLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Encrypting transmission payload...`]);
-        } else if (sosCountdown === 3) {
-          setSosLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Accessing Geolocation APIs: LAT: ${gpsCoords.lat.toFixed(5)} LNG: ${gpsCoords.lng.toFixed(5)}`]);
-        } else if (sosCountdown === 1) {
-          setSosLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Opening server-authoritative socket channel...`]);
+      timer = setTimeout(async () => {
+        const nextCount = sosCountdown - 1;
+        setSosCountdown(nextCount);
+        
+        let newLogs = [...sosLogs];
+        if (nextCount === 4) {
+          newLogs.push(`[${new Date().toLocaleTimeString()}] Encrypting transmission payload...`);
+        } else if (nextCount === 2) {
+          newLogs.push(`[${new Date().toLocaleTimeString()}] Accessing Geolocation APIs: LAT: ${gpsCoords.lat.toFixed(5)} LNG: ${gpsCoords.lng.toFixed(5)}`);
+        } else if (nextCount === 0) {
+          newLogs.push(`[${new Date().toLocaleTimeString()}] Opening server-authoritative socket channel...`);
+        }
+        setSosLogs(newLogs);
+
+        // If we are in real database mode, save logs to active SOS row in background
+        if (firebaseUser && sosId) {
+          try {
+            const headers = await getHeaders();
+            await fetch(`/api/safeguard/sos/${sosId}/logs`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({ logs: newLogs })
+            });
+          } catch (e) {
+            console.error("Failed to sync SOS logs:", e);
+          }
         }
       }, 1000);
     } else if (sosActive && sosCountdown === 0 && !sosDispatched) {
       setSosDispatched(true);
-      setSosLogs(prev => [
-        ...prev,
+      const completionLogs = [
+        ...sosLogs,
         `[${new Date().toLocaleTimeString()}] 🟢 DISPATCHED! Direct alert payload transmitted successfully.`,
         `[${new Date().toLocaleTimeString()}] Valencia-Dolores Precinct dispatch units notified (ID: PE-SOS-${Math.floor(Math.random()*10000)}).`,
         `[${new Date().toLocaleTimeString()}] Emergency Contacts pinged with live coordinates: https://maps.google.com/?q=${gpsCoords.lat},${gpsCoords.lng}`
-      ]);
+      ];
+      setSosLogs(completionLogs);
+
+      // Save complete dispatch log to database
+      if (firebaseUser && sosId) {
+        getHeaders().then(headers => {
+          fetch(`/api/safeguard/sos/${sosId}/logs`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ logs: completionLogs })
+          });
+        });
+      }
     }
     return () => clearTimeout(timer);
-  }, [sosActive, sosCountdown, sosDispatched, gpsCoords]);
+  }, [sosActive, sosCountdown, sosDispatched, gpsCoords, firebaseUser, sosId, sosLogs]);
 
-  const handleStartSos = () => {
+  const handleStartSos = async () => {
+    const initLogs = [`[${new Date().toLocaleTimeString()}] SOS sequence activated by ${firebaseUser ? firebaseUser.email : currentUser}.`];
     setSosActive(true);
     setSosCountdown(5);
     setSosDispatched(false);
-    setSosLogs([`[${new Date().toLocaleTimeString()}] SOS sequence activated by ${currentUser}.`]);
+    setSosLogs(initLogs);
+
+    if (firebaseUser) {
+      try {
+        const headers = await getHeaders();
+        const res = await fetch('/api/safeguard/sos', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            latitude: gpsCoords.lat,
+            longitude: gpsCoords.lng,
+            logs: initLogs
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setSosId(data.id);
+        }
+      } catch (err) {
+        console.error("Failed to initialize remote SOS signal:", err);
+      }
+    }
   };
 
-  const handleCancelSos = () => {
+  const handleCancelSos = async () => {
+    const localId = sosId;
     setSosActive(false);
     setSosCountdown(5);
     setSosDispatched(false);
     setSosLogs([]);
+    setSosId(null);
+
+    if (firebaseUser && localId) {
+      try {
+        const headers = await getHeaders();
+        await fetch(`/api/safeguard/sos/${localId}/resolve`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ status: 'cancelled' })
+        });
+      } catch (err) {
+        console.error("Failed to cancel SOS remote signal:", err);
+      }
+    }
   };
 
-  const handleCheckIn = (zoneName: string) => {
+  const handleCheckIn = async (zoneName: string) => {
     setCheckedInZone(zoneName);
-    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    setCheckInTime(now);
+    const nowTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setCheckInTime(nowTimeStr);
     setShowConfirmation(true);
     setTimeout(() => {
       setShowConfirmation(false);
     }, 4000);
+
+    if (firebaseUser) {
+      try {
+        const headers = await getHeaders();
+        await fetch('/api/safeguard/checkins', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ zoneName })
+        });
+      } catch (err) {
+        console.error("Failed to record checkin in database:", err);
+      }
+    }
   };
 
-  const toggleSafetyTip = (id: number) => {
-    setSafetyTips(safetyTips.map(tip => tip.id === id ? { ...tip, done: !tip.done } : tip));
+  const toggleSafetyTip = async (id: number) => {
+    // Optimistic UI updates
+    const target = safetyTips.find(tip => tip.id === id);
+    if (!target) return;
+    const nextDone = !target.done;
+
+    setSafetyTips(safetyTips.map(tip => tip.id === id ? { ...tip, done: nextDone } : tip));
+
+    if (firebaseUser) {
+      try {
+        const headers = await getHeaders();
+        await fetch(`/api/safeguard/checklist/${id}/toggle`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ done: nextDone })
+        });
+      } catch (err) {
+        console.error("Failed to toggle checklist status:", err);
+      }
+    }
+  };
+
+  const handleSignIn = async () => {
+    try {
+      await googleSignIn();
+    } catch (error) {
+      console.error('Sign in failed:', error);
+    }
   };
 
   const filteredResources = resources.filter(res => {
@@ -214,9 +399,36 @@ export default function SafeGuardHub({ currentUser }: SafeGuardHubProps) {
           </p>
         </div>
         <div className="flex items-center gap-2 text-[10px] font-mono text-slate-500 bg-white/[0.01] border border-white/5 px-3 py-1.5 rounded-xl">
-          <Activity className="w-3 h-3 text-emerald-500 animate-pulse" /> SYSTEM NODE IS SECURE & ENCRYPTED
+          <Activity className="w-3 h-3 text-emerald-500 animate-pulse" /> {firebaseUser ? 'LIVE CLOUD SQL DATABASE SYNC ENABLED' : 'LOCAL SANDBOX ACTIVE'}
         </div>
       </div>
+
+      {/* Cloud SQL authentication banner */}
+      {!firebaseUser && (
+        <div className="bg-[#0f1712] border border-emerald-500/20 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h4 className="text-sm font-bold text-emerald-400 flex items-center gap-1.5">
+              <Lock className="w-4 h-4 text-emerald-400" /> Unlock Live Cloud SQL Database Synchronization
+            </h4>
+            <p className="text-xs text-slate-400 max-w-2xl">
+              Currently running in temporary local mode. Sign in using your Google account to enable persistent storage for your emergency check-ins, companion checklists, and active SOS logs on Cloud SQL!
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleSignIn}
+            className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-black text-xs font-bold rounded-xl flex items-center gap-2 cursor-pointer transition-all shrink-0 shadow-lg shadow-emerald-500/10"
+          >
+            <LogIn className="w-4 h-4" /> Sign In with Google
+          </button>
+        </div>
+      )}
+
+      {dbLoading && (
+        <div className="bg-white/[0.02] border border-white/5 p-3 rounded-xl flex items-center justify-center gap-2 text-xs font-mono text-slate-400">
+          <RefreshCw className="w-4 h-4 text-emerald-500 animate-spin" /> Synchronizing safe corridors and distress telemetry...
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         

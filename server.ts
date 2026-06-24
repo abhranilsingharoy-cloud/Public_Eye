@@ -4,8 +4,31 @@ import fs from 'fs';
 import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type } from '@google/genai';
+import { requireAuth, AuthRequest } from './src/middleware/auth.ts';
+import {
+  seedIssuesIfEmpty,
+  getDbIssues,
+  insertDbIssue,
+  upvoteDbIssue,
+  addDbComment,
+  addDbVerification,
+  updateDbStatus
+} from './src/db/issues_db.ts';
+import {
+  getSosSignalsForUser,
+  createSosSignal,
+  updateSosSignalLogs,
+  resolveSosSignal,
+  getCheckinsForUser,
+  createCheckin,
+  getChecklistForUser,
+  toggleChecklistItem
+} from './src/db/safeguard_db.ts';
 
 dotenv.config();
+
+// Seed database
+seedIssuesIfEmpty();
 
 const app = express();
 const PORT = 3000;
@@ -275,9 +298,13 @@ function getGeminiAI() {
 }
 
 // 1. Get all issues
-app.get('/api/issues', (req, res) => {
-  const issues = readIssues();
-  res.json(issues);
+app.get('/api/issues', async (req, res) => {
+  try {
+    const list = await getDbIssues();
+    res.json(list);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // 2. Report new issue with AI analysis
@@ -287,7 +314,6 @@ app.post('/api/issues', async (req, res) => {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  const issues = readIssues();
   const id = 'issue-' + Date.now();
 
   let aiCategorized = false;
@@ -346,11 +372,6 @@ Provide the output strictly matching the schema with category, severity, safetyT
       if (response && response.text) {
         const result = JSON.parse(response.text.trim());
         aiCategorized = true;
-        // Map to valid category if necessary, otherwise fallback to selected
-        const validCategories = ['pothole', 'water_leak', 'broken_light', 'waste', 'infrastructure', 'other'];
-        if (validCategories.includes(result.category)) {
-          // Keep AI category or use user's if other
-        }
         aiSeverity = ['low', 'medium', 'high'].includes(result.severity) ? result.severity : 'medium';
         aiSafetyTips = result.safetyTips || aiSafetyTips;
         aiSuggestedAction = result.suggestedAction || aiSuggestedAction;
@@ -406,14 +427,12 @@ Provide the output strictly matching the schema with category, severity, safetyT
     votedUsers: [reporter],
     createdAt: now,
     updatedAt: now,
-    imageUrl: imageUrl || undefined,
-    videoUrl: videoUrl || undefined,
-    media: [
-      ...(imageUrl ? [{ type: 'image' as const, url: imageUrl }] : []),
-      ...(videoUrl ? [{ type: 'video' as const, url: videoUrl }] : [])
-    ],
     aiCategorized,
     aiSeverity,
+    media: [
+      ...(imageUrl ? [{ type: 'image', url: imageUrl }] : []),
+      ...(videoUrl ? [{ type: 'video', url: videoUrl }] : [])
+    ],
     aiSafetyTips,
     aiSuggestedAction,
     aiTags,
@@ -421,59 +440,35 @@ Provide the output strictly matching the schema with category, severity, safetyT
     verifications: [],
     statusHistory: [
       { status: 'reported', timestamp: now }
-    ],
-    agentTrace: generateAgentTrace({
-      createdAt: now,
-      category,
-      aiSeverity,
-      reporter,
-      status: 'reported',
-      upvotes: 1
-    })
+    ]
   };
 
-  issues.unshift(newIssue);
-  writeIssues(issues);
-
-  res.status(201).json({ issue: newIssue, warning: aiWarning });
+  try {
+    const inserted = await insertDbIssue(newIssue);
+    res.status(201).json({ issue: inserted, warning: aiWarning });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // 3. Upvote/Verify an issue
-app.post('/api/issues/:id/vote', (req, res) => {
+app.post('/api/issues/:id/vote', async (req, res) => {
   const { user } = req.body;
   if (!user) return res.status(400).json({ error: 'User is required' });
 
-  const issues = readIssues();
-  const index = issues.findIndex(i => i.id === req.params.id);
-  if (index === -1) return res.status(404).json({ error: 'Issue not found' });
-
-  const issue = issues[index];
-  if (issue.votedUsers.includes(user)) {
-    // Unlike/downvote if already voted (toggle behavior)
-    issue.votedUsers = issue.votedUsers.filter(u => u !== user);
-    issue.upvotes = Math.max(0, issue.upvotes - 1);
-  } else {
-    issue.votedUsers.push(user);
-    issue.upvotes += 1;
+  try {
+    const updated = await upvoteDbIssue(req.params.id, user);
+    res.json(updated);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
   }
-
-  issue.updatedAt = new Date().toISOString();
-  issues[index] = issue;
-  writeIssues(issues);
-
-  res.json(issue);
 });
 
 // 4. Add comment
-app.post('/api/issues/:id/comment', (req, res) => {
+app.post('/api/issues/:id/comment', async (req, res) => {
   const { author, text } = req.body;
   if (!author || !text) return res.status(400).json({ error: 'Author and text are required' });
 
-  const issues = readIssues();
-  const index = issues.findIndex(i => i.id === req.params.id);
-  if (index === -1) return res.status(404).json({ error: 'Issue not found' });
-
-  const issue = issues[index];
   const newComment = {
     id: 'c-' + Date.now(),
     author,
@@ -481,24 +476,19 @@ app.post('/api/issues/:id/comment', (req, res) => {
     createdAt: new Date().toISOString()
   };
 
-  issue.comments.push(newComment);
-  issue.updatedAt = new Date().toISOString();
-  issues[index] = issue;
-  writeIssues(issues);
-
-  res.json(issue);
+  try {
+    const updated = await addDbComment(req.params.id, newComment);
+    res.json(updated);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // 5. Verify / Dispute issue officially
-app.post('/api/issues/:id/verify', (req, res) => {
+app.post('/api/issues/:id/verify', async (req, res) => {
   const { user, type, notes, images } = req.body; // type: 'verify' | 'dispute'
   if (!user || !type) return res.status(400).json({ error: 'User and type are required' });
 
-  const issues = readIssues();
-  const index = issues.findIndex(i => i.id === req.params.id);
-  if (index === -1) return res.status(404).json({ error: 'Issue not found' });
-
-  const issue = issues[index];
   const newLog = {
     id: 'v-' + Date.now(),
     user,
@@ -508,94 +498,34 @@ app.post('/api/issues/:id/verify', (req, res) => {
     createdAt: new Date().toISOString()
   };
 
-  issue.verifications.push(newLog);
-
-  // Auto transition status if enough verifications
-  if (issue.status === 'reported' && type === 'verify') {
-    issue.status = 'verified';
-    const verifyTime = new Date().toISOString();
-    issue.verifiedAt = verifyTime;
-    if (!issue.statusHistory) {
-      issue.statusHistory = [
-        { status: 'reported', timestamp: issue.createdAt || new Date().toISOString() }
-      ];
-    }
-    if (!issue.statusHistory.some((h: any) => h.status === 'verified')) {
-      issue.statusHistory.push({ status: 'verified', timestamp: verifyTime });
-    }
+  try {
+    const updated = await addDbVerification(req.params.id, newLog, type === 'verify');
+    res.json(updated);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
   }
-
-  issue.updatedAt = new Date().toISOString();
-  issues[index] = issue;
-  writeIssues(issues);
-
-  res.json(issue);
 });
 
 // 6. Update status (e.g. resolve or set in-progress)
-app.post('/api/issues/:id/status', (req, res) => {
+app.post('/api/issues/:id/status', async (req, res) => {
   const { status, resolutionNotes, resolutionImageUrl, resolutionVideoUrl } = req.body;
   if (!status) return res.status(400).json({ error: 'Status is required' });
 
-  const issues = readIssues();
-  const index = issues.findIndex(i => i.id === req.params.id);
-  if (index === -1) return res.status(404).json({ error: 'Issue not found' });
-
-  const issue = issues[index];
-  issue.status = status;
-
-  const statusTime = new Date().toISOString();
-
-  if (!issue.statusHistory) {
-    issue.statusHistory = [
-      { status: 'reported', timestamp: issue.createdAt || statusTime }
-    ];
+  try {
+    const updated = await updateDbStatus(req.params.id, status, {
+      resolutionNotes,
+      resolutionImageUrl,
+      resolutionVideoUrl
+    });
+    res.json(updated);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
   }
-
-  if (status === 'verified') {
-    issue.verifiedAt = statusTime;
-  } else if (status === 'in_progress') {
-    issue.inProgressAt = statusTime;
-    if (!issue.verifiedAt) {
-      issue.verifiedAt = statusTime;
-      if (!issue.statusHistory.some((h: any) => h.status === 'verified')) {
-        issue.statusHistory.push({ status: 'verified', timestamp: statusTime });
-      }
-    }
-  } else if (status === 'resolved') {
-    issue.resolutionNotes = resolutionNotes || 'Resolved by community/municipal cooperation.';
-    issue.resolutionImageUrl = resolutionImageUrl || undefined;
-    issue.resolutionVideoUrl = resolutionVideoUrl || undefined;
-    issue.resolvedAt = statusTime;
-
-    if (!issue.verifiedAt) {
-      issue.verifiedAt = statusTime;
-      if (!issue.statusHistory.some((h: any) => h.status === 'verified')) {
-        issue.statusHistory.push({ status: 'verified', timestamp: statusTime });
-      }
-    }
-    if (!issue.inProgressAt) {
-      issue.inProgressAt = statusTime;
-      if (!issue.statusHistory.some((h: any) => h.status === 'in_progress')) {
-        issue.statusHistory.push({ status: 'in_progress', timestamp: statusTime });
-      }
-    }
-  }
-
-  if (!issue.statusHistory.some((h: any) => h.status === status)) {
-    issue.statusHistory.push({ status, timestamp: statusTime });
-  }
-
-  issue.updatedAt = statusTime;
-  issues[index] = issue;
-  writeIssues(issues);
-
-  res.json(issue);
 });
 
 // 7. Get stats & Leaderboard
-app.get('/api/stats', (req, res) => {
-  const issues = readIssues();
+app.get('/api/stats', async (req, res) => {
+  const issues = await getDbIssues();
 
   // Calculate distributions
   const categoryDistribution = {
@@ -1033,7 +963,7 @@ app.post('/api/draft-resolution', async (req, res) => {
 // AI Audio Briefing (TTS) Route
 app.post('/api/audio-briefing', async (req, res) => {
   const ai = getGeminiAI();
-  const issues = readIssues();
+  const issues = await getDbIssues();
   const active = issues.filter((i: any) => i.status !== 'resolved');
 
   let briefingText = `Good morning, Valencia Dolores! This is your daily Civic AI Sentinel briefing. Today, we have ${active.length} active neighborhood reports under audit. Potholes remain our highest concern, with ${active.filter((i: any) => i.category === 'pothole').length} active repairs. Thanks to your verifications, we have dispatched public works alerts. Stay safe, keep reporting, and let's clean up our neighborhood!`;
@@ -1074,6 +1004,110 @@ app.post('/api/audio-briefing', async (req, res) => {
     console.error("TTS generation error:", err);
     // Fallback to text only for client-side SpeechSynthesis
     return res.json({ briefingText, audioBase64: null });
+  }
+});
+
+// --- SAFEGUARD HUB ENDPOINTS ---
+
+// Get SOS signals
+app.get('/api/safeguard/sos', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const uid = req.user!.uid;
+    const email = req.user!.email || '';
+    const signals = await getSosSignalsForUser(uid, email);
+    res.json(signals);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create new SOS signal
+app.post('/api/safeguard/sos', requireAuth, async (req: AuthRequest, res) => {
+  const { latitude, longitude, logs } = req.body;
+  if (latitude === undefined || longitude === undefined) {
+    return res.status(400).json({ error: 'Latitude and longitude are required' });
+  }
+  try {
+    const uid = req.user!.uid;
+    const email = req.user!.email || '';
+    const signal = await createSosSignal(uid, email, Number(latitude), Number(longitude), logs || []);
+    res.status(201).json(signal);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update SOS logs
+app.post('/api/safeguard/sos/:id/logs', requireAuth, async (req: AuthRequest, res) => {
+  const { logs } = req.body;
+  if (!logs) return res.status(400).json({ error: 'Logs are required' });
+  try {
+    const signal = await updateSosSignalLogs(Number(req.params.id), logs);
+    res.json(signal);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Resolve SOS signal
+app.post('/api/safeguard/sos/:id/resolve', requireAuth, async (req: AuthRequest, res) => {
+  const { status } = req.body; // 'resolved' or 'cancelled'
+  if (!status) return res.status(400).json({ error: 'Status is required' });
+  try {
+    const signal = await resolveSosSignal(Number(req.params.id), status);
+    res.json(signal);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get checkins
+app.get('/api/safeguard/checkins', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const uid = req.user!.uid;
+    const email = req.user!.email || '';
+    const checkins = await getCheckinsForUser(uid, email);
+    res.json(checkins);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create checkin
+app.post('/api/safeguard/checkins', requireAuth, async (req: AuthRequest, res) => {
+  const { zoneName } = req.body;
+  if (!zoneName) return res.status(400).json({ error: 'Zone name is required' });
+  try {
+    const uid = req.user!.uid;
+    const email = req.user!.email || '';
+    const checkin = await createCheckin(uid, email, zoneName);
+    res.status(201).json(checkin);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get checklist
+app.get('/api/safeguard/checklist', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const uid = req.user!.uid;
+    const email = req.user!.email || '';
+    const checklist = await getChecklistForUser(uid, email);
+    res.json(checklist);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Toggle checklist item
+app.post('/api/safeguard/checklist/:id/toggle', requireAuth, async (req: AuthRequest, res) => {
+  const { done } = req.body;
+  if (done === undefined) return res.status(400).json({ error: 'Done status is required' });
+  try {
+    const item = await toggleChecklistItem(Number(req.params.id), done);
+    res.json(item);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
   }
 });
 
