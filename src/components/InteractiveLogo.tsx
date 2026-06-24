@@ -7,7 +7,7 @@ export interface LogoConfig {
   strokeWidth: number;
   rotation: number;
   scale: number;
-  animation: 'pulse' | 'spin' | 'ping' | 'breath' | 'none';
+  animation: 'pulse' | 'spin' | 'ping' | 'breath' | 'blink' | 'none';
 }
 
 interface InteractiveLogoProps {
@@ -217,6 +217,11 @@ export default function InteractiveLogo({ config, className = '', size = 32 }: I
           transformOrigin: 'center',
           animation: 'breath 4s ease-in-out infinite',
         };
+      case 'blink':
+        return {
+          transformOrigin: 'center',
+          animation: 'blink-anim 3.5s ease-in-out infinite',
+        };
       case 'none':
       default:
         return {};
@@ -255,6 +260,10 @@ export default function InteractiveLogo({ config, className = '', size = 32 }: I
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
+        }
+        @keyframes blink-anim {
+          0%, 88%, 93%, 100% { transform: scaleY(1); opacity: 1; filter: drop-shadow(0 0 2px ${colors.primary}); }
+          90%, 92% { transform: scaleY(0.05); opacity: 0.2; filter: drop-shadow(0 0 0px transparent); }
         }
       `}</style>
 

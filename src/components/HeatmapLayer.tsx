@@ -8,7 +8,7 @@ interface HeatmapLayerProps {
 
 export function HeatmapLayer({ issues }: HeatmapLayerProps) {
   const map = useMap();
-  const visualization = useMapsLibrary('visualization');
+  const visualization = useMapsLibrary('visualization') as any;
   
   const heatmapLayer = useMemo(() => {
     if (!visualization) return null;

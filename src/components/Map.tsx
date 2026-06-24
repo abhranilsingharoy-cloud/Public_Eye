@@ -89,7 +89,7 @@ function FacilitiesLayer() {
   }, [placesLib, map]);
 
   // Remove duplicates based on place_id
-  const uniqueFacilities = Array.from(new Map(facilities.map(f => [f.place_id, f])).values());
+  const uniqueFacilities = Array.from(new globalThis.Map(facilities.map(f => [f.place_id, f])).values()) as any[];
 
   return (
     <>

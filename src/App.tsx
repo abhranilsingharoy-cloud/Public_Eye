@@ -89,16 +89,16 @@ export default function App() {
 
   // Tabs: 'home' | 'map' | 'predictive' | 'leaderboard' | 'assistant' | 'workspace' | 'pipeline'
   const [activeTab, setActiveTab] = useState<'home' | 'map' | 'predictive' | 'leaderboard' | 'assistant' | 'workspace' | 'pipeline'>('home');
-  const [handbookSubTab, setHandbookSubTab] = useState<'overview' | 'workflow' | 'features' | 'faq' | 'logolab'>('overview');
+  const [handbookSubTab, setHandbookSubTab] = useState<'overview' | 'workflow' | 'features' | 'faq'>('overview');
 
   // Logo Customization Global State
-  const [logoTheme, setLogoTheme] = useState<'amber' | 'toxic' | 'cobalt' | 'crimson' | 'onyx'>('amber');
+  const [logoTheme, setLogoTheme] = useState<'amber' | 'toxic' | 'cobalt' | 'crimson' | 'onyx'>('toxic');
   const [logoShape, setLogoShape] = useState<'diamond' | 'circle' | 'hexagon' | 'shield' | 'triangle'>('diamond');
-  const [logoIcon, setLogoIcon] = useState<'p' | 'eye' | 'shield' | 'grid' | 'hazard'>('p');
-  const [logoStroke, setLogoStroke] = useState<number>(1.5);
-  const [logoRotate, setLogoRotate] = useState<number>(45);
+  const [logoIcon, setLogoIcon] = useState<'p' | 'eye' | 'shield' | 'grid' | 'hazard'>('eye');
+  const [logoStroke, setLogoStroke] = useState<number>(2);
+  const [logoRotate, setLogoRotate] = useState<number>(0);
   const [logoScale, setLogoScale] = useState<number>(1);
-  const [logoAnim, setLogoAnim] = useState<'pulse' | 'spin' | 'ping' | 'breath' | 'none'>('pulse');
+  const [logoAnim, setLogoAnim] = useState<'pulse' | 'spin' | 'ping' | 'breath' | 'blink' | 'none'>('blink');
 
   const logoConfig = {
     theme: logoTheme,
@@ -749,7 +749,6 @@ export default function App() {
                     { id: 'workflow', label: 'How it Works', icon: Clock },
                     { id: 'features', label: 'Platform Features', icon: Layers },
                     { id: 'faq', label: 'FAQ & Help Center', icon: HelpCircle },
-                    { id: 'logolab', label: 'Logo Laboratory', icon: Sparkles },
                   ].map((subTab) => {
                     const Icon = subTab.icon;
                     const isActive = handbookSubTab === subTab.id;
@@ -1120,8 +1119,8 @@ export default function App() {
                   </motion.div>
                 )}
 
-                {/* 5. Logo Laboratory */}
-                {handbookSubTab === 'logolab' && (
+                {/* 5. Logo Laboratory Disabled */}
+                {false && (
                   <motion.div
                     key="logolab-subtab"
                     initial={{ opacity: 0, y: 10 }}
