@@ -14,6 +14,7 @@ export interface VerificationLog {
   user: string;
   type: 'verify' | 'dispute';
   notes?: string;
+  images?: string[];
   createdAt: string;
 }
 

@@ -491,7 +491,7 @@ app.post('/api/issues/:id/comment', (req, res) => {
 
 // 5. Verify / Dispute issue officially
 app.post('/api/issues/:id/verify', (req, res) => {
-  const { user, type, notes } = req.body; // type: 'verify' | 'dispute'
+  const { user, type, notes, images } = req.body; // type: 'verify' | 'dispute'
   if (!user || !type) return res.status(400).json({ error: 'User and type are required' });
 
   const issues = readIssues();
@@ -504,6 +504,7 @@ app.post('/api/issues/:id/verify', (req, res) => {
     user,
     type,
     notes,
+    images: images || [],
     createdAt: new Date().toISOString()
   };
 

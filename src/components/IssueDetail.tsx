@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Issue, Comment, VerificationLog, IssueStatus } from '../types';
 import CameraMediaCapture from './CameraMediaCapture';
+import MultiPhotoCapture from './MultiPhotoCapture';
 import { motion, AnimatePresence } from 'motion/react';
 import { LineChart, Line, ResponsiveContainer, Tooltip } from 'recharts';
 import {
@@ -31,10 +32,12 @@ import {
 
 interface IssueDetailProps {
   issue: Issue;
+  allIssues?: Issue[];
+  onSelectIssue?: (issueId: string) => void;
   currentUser: string;
   onVote: (issueId: string) => void;
   onAddComment: (issueId: string, text: string) => void;
-  onVerify: (issueId: string, type: 'verify' | 'dispute', notes: string) => void;
+  onVerify: (issueId: string, type: 'verify' | 'dispute', notes: string, images?: string[]) => void;
   onUpdateStatus: (
     issueId: string, 
     status: IssueStatus, 
@@ -200,6 +203,8 @@ function MediaCarousel({ media }: { media: { type: 'image' | 'video', url: strin
 
 export default function IssueDetail({
   issue,
+  allIssues = [],
+  onSelectIssue,
   currentUser,
   onVote,
   onAddComment,
@@ -208,6 +213,7 @@ export default function IssueDetail({
 }: IssueDetailProps) {
   const [commentText, setCommentText] = useState('');
   const [verifyNotes, setVerifyNotes] = useState('');
+  const [verifyPhotos, setVerifyPhotos] = useState<string[]>([]);
   const [showVerifyForm, setShowVerifyForm] = useState(false);
   const [showResolveForm, setShowResolveForm] = useState(false);
   const [resolveNotes, setResolveNotes] = useState('');
@@ -234,6 +240,33 @@ export default function IssueDetail({
     }
     return data.reverse();
   }, [issue.id]);
+
+  const getDistanceInMeters = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371e3;
+    const phi1 = (lat1 * Math.PI) / 180;
+    const phi2 = (lat2 * Math.PI) / 180;
+    const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+    const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a =
+      Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+      Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
+  };
+
+  const nearbySameCategoryIssues = React.useMemo(() => {
+    if (!allIssues) return [];
+    return allIssues
+      .filter((i) => i.id !== issue.id && i.category === issue.category)
+      .map((i) => {
+        const distance = getDistanceInMeters(issue.latitude, issue.longitude, i.latitude, i.longitude);
+        return { issue: i, distance };
+      })
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 4);
+  }, [allIssues, issue]);
 
   const handleShare = async () => {
     const shareUrl = `${window.location.origin}${window.location.pathname}?issueId=${issue.id}`;
@@ -281,8 +314,14 @@ export default function IssueDetail({
 
   const handleVerifySubmit = (e: React.FormEvent, type: 'verify' | 'dispute') => {
     e.preventDefault();
-    onVerify(issue.id, type, verifyNotes.trim() || `${type === 'verify' ? 'Verified' : 'Disputed'} by citizen.`);
+    onVerify(
+      issue.id, 
+      type, 
+      verifyNotes.trim() || `${type === 'verify' ? 'Verified' : 'Disputed'} by citizen.`,
+      verifyPhotos
+    );
     setVerifyNotes('');
+    setVerifyPhotos([]);
     setShowVerifyForm(false);
   };
 
@@ -557,6 +596,52 @@ export default function IssueDetail({
           </div>
         </div>
 
+        {/* Predictive Diagnostics: Nearby Related Problems */}
+        <div>
+          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 font-mono flex items-center gap-1.5">
+            <Cpu className="w-3.5 h-3.5 text-amber-500" />
+            Predictive Diagnostics (Same Category)
+          </h4>
+          <div className="space-y-2">
+            {nearbySameCategoryIssues.length > 0 ? (
+              nearbySameCategoryIssues.map(({ issue: i, distance }) => (
+                <div
+                  key={i.id}
+                  onClick={() => onSelectIssue?.(i.id)}
+                  className="bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 hover:border-amber-500/20 px-3.5 py-3 rounded-xl flex items-center justify-between gap-3 transition-all cursor-pointer group"
+                >
+                  <div className="min-w-0">
+                    <span className="block text-xs font-semibold text-slate-200 group-hover:text-amber-400 transition-colors truncate">
+                      {i.title}
+                    </span>
+                    <span className="block text-[10px] text-slate-400 font-mono mt-0.5">
+                      Lat: {i.latitude.toFixed(4)}, Lng: {i.longitude.toFixed(4)} • {distance < 1000 ? `${distance.toFixed(0)}m` : `${(distance/1000).toFixed(1)}km`} away
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border font-mono ${
+                      i.status === 'resolved'
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                        : i.status === 'in_progress'
+                        ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                        : i.status === 'verified'
+                        ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                        : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
+                    }`}>
+                      {i.status.replace('_', ' ')}
+                    </span>
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all" />
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-4 bg-white/[0.01] border border-dashed border-white/5 rounded-xl text-xs text-slate-500">
+                No nearby related persistent problems of this category detected.
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Status Tracker Timeline */}
         <div>
           <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3.5 font-mono">Lifecycle Tracking</h4>
@@ -793,6 +878,19 @@ export default function IssueDetail({
                         </span>
                       </div>
                       <p className="text-slate-300 mt-0.5">{v.notes}</p>
+                      {v.images && v.images.length > 0 && (
+                        <div className="flex gap-1.5 mt-2 overflow-x-auto pb-1">
+                          {v.images.map((imgUrl, imgIdx) => (
+                            <img
+                              key={imgIdx}
+                              src={imgUrl}
+                              alt="Verification proof"
+                              className="w-12 h-9 object-cover rounded border border-white/10 hover:border-amber-500/50 transition-all"
+                              referrerPolicy="no-referrer"
+                            />
+                          ))}
+                        </div>
+                      )}
                       <span className="text-[9px] text-slate-500 font-mono mt-1 block">{new Date(v.createdAt).toLocaleDateString()}</span>
                     </div>
                   </motion.div>
@@ -864,8 +962,14 @@ export default function IssueDetail({
                   value={verifyNotes}
                   onChange={(e) => setVerifyNotes(e.target.value)}
                   placeholder="Write specific auditing observation notes... (e.g., 'Inspected on foot. Pothole is active and blocking traffic')"
-                  className="w-full bg-black/40 border border-white/5 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 text-slate-200 placeholder-slate-500 resize-none h-16"
+                  className="w-full bg-black/40 border border-white/5 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 text-slate-200 placeholder-slate-500 resize-none h-16 mb-3"
                 />
+                <div className="mb-3">
+                  <MultiPhotoCapture 
+                    photos={verifyPhotos} 
+                    onChange={setVerifyPhotos} 
+                  />
+                </div>
                 <div className="flex items-center gap-1.5 mt-2 justify-end">
                   <button
                     type="submit"

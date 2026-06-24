@@ -304,12 +304,12 @@ export default function App() {
   };
 
   // Audit verify / dispute log action
-  const handleVerify = async (issueId: string, type: 'verify' | 'dispute', notes: string) => {
+  const handleVerify = async (issueId: string, type: 'verify' | 'dispute', notes: string, images?: string[]) => {
     try {
       const res = await fetch(`/api/issues/${issueId}/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user: currentUser, type, notes })
+        body: JSON.stringify({ user: currentUser, type, notes, images })
       });
       if (res.ok) {
         const updatedIssue = await res.json();
@@ -1585,6 +1585,8 @@ export default function App() {
                 {selectedIssue ? (
                   <IssueDetail
                     issue={selectedIssue}
+                    allIssues={issues}
+                    onSelectIssue={(id) => setSelectedIssueId(id)}
                     currentUser={currentUser}
                     onVote={handleVote}
                     onAddComment={handleAddComment}
