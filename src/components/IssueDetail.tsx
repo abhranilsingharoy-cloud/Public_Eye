@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Issue, Comment, VerificationLog, IssueStatus } from '../types';
+import CameraMediaCapture from './CameraMediaCapture';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ThumbsUp,
@@ -28,7 +29,13 @@ interface IssueDetailProps {
   onVote: (issueId: string) => void;
   onAddComment: (issueId: string, text: string) => void;
   onVerify: (issueId: string, type: 'verify' | 'dispute', notes: string) => void;
-  onUpdateStatus: (issueId: string, status: IssueStatus, notes?: string) => void;
+  onUpdateStatus: (
+    issueId: string, 
+    status: IssueStatus, 
+    notes?: string, 
+    resolutionImageUrl?: string, 
+    resolutionVideoUrl?: string
+  ) => void;
 }
 
 export default function IssueDetail({
@@ -44,6 +51,8 @@ export default function IssueDetail({
   const [showVerifyForm, setShowVerifyForm] = useState(false);
   const [showResolveForm, setShowResolveForm] = useState(false);
   const [resolveNotes, setResolveNotes] = useState('');
+  const [resolutionMediaUrl, setResolutionMediaUrl] = useState<string | null>(null);
+  const [resolutionMediaType, setResolutionMediaType] = useState<'image' | 'video' | null>(null);
   const [shareFeedback, setShareFeedback] = useState<string | null>(null);
 
   const handleShare = async () => {
@@ -99,8 +108,16 @@ export default function IssueDetail({
 
   const handleResolveSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onUpdateStatus(issue.id, 'resolved', resolveNotes.trim() || 'Resolved by community & public coordination.');
+    onUpdateStatus(
+      issue.id, 
+      'resolved', 
+      resolveNotes.trim() || 'Resolved by community & public coordination.',
+      resolutionMediaType === 'image' ? (resolutionMediaUrl || undefined) : undefined,
+      resolutionMediaType === 'video' ? (resolutionMediaUrl || undefined) : undefined
+    );
     setResolveNotes('');
+    setResolutionMediaUrl(null);
+    setResolutionMediaType(null);
     setShowResolveForm(false);
   };
 
@@ -351,6 +368,26 @@ export default function IssueDetail({
               >
                 <span className="font-bold text-emerald-200 block mb-1">✅ RESOLUTION LOG:</span>
                 <p className="italic leading-relaxed">"{issue.resolutionNotes}"</p>
+                {issue.resolutionImageUrl && (
+                  <div className="mt-3 rounded-lg overflow-hidden border border-emerald-500/20 bg-black">
+                    <img
+                      src={issue.resolutionImageUrl}
+                      alt="Resolution Evidence Image"
+                      referrerPolicy="no-referrer"
+                      className="max-h-[180px] w-full object-contain"
+                    />
+                  </div>
+                )}
+                {issue.resolutionVideoUrl && (
+                  <div className="mt-3 rounded-lg overflow-hidden border border-emerald-500/20 bg-black">
+                    <video
+                      src={issue.resolutionVideoUrl}
+                      controls
+                      playsInline
+                      className="max-h-[180px] w-full object-contain"
+                    />
+                  </div>
+                )}
                 {issue.resolvedAt && (
                   <span className="block mt-2 font-mono text-[9px] text-emerald-500">
                     Closed at: {new Date(issue.resolvedAt).toLocaleString()}
@@ -619,9 +656,23 @@ export default function IssueDetail({
                   value={resolveNotes}
                   onChange={(e) => setResolveNotes(e.target.value)}
                   placeholder="Write specific resolution details... (e.g., 'Asphalt patching is complete. Debris swept.')"
-                  className="w-full bg-black/40 border border-white/5 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-200 placeholder-slate-500 resize-none h-16"
+                  className="w-full bg-black/40 border border-white/5 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-200 placeholder-slate-500 resize-none h-16 mb-3"
                   required
                 />
+                <div className="mb-3">
+                  <CameraMediaCapture
+                    onMediaCaptured={(url, type) => {
+                      setResolutionMediaUrl(url);
+                      setResolutionMediaType(type);
+                    }}
+                    onClear={() => {
+                      setResolutionMediaUrl(null);
+                      setResolutionMediaType(null);
+                    }}
+                    capturedUrl={resolutionMediaUrl}
+                    capturedType={resolutionMediaType}
+                  />
+                </div>
                 <div className="flex items-center gap-1.5 mt-2 justify-end">
                   <button
                     type="submit"

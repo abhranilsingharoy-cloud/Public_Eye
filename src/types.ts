@@ -44,6 +44,7 @@ export interface Issue {
   createdAt: string;
   updatedAt: string;
   imageUrl?: string;
+  videoUrl?: string;
   aiCategorized: boolean;
   aiSeverity: SeverityLevel;
   aiSafetyTips?: string;
@@ -53,6 +54,7 @@ export interface Issue {
   verifications: VerificationLog[];
   resolutionNotes?: string;
   resolutionImageUrl?: string;
+  resolutionVideoUrl?: string;
   resolvedAt?: string;
   verifiedAt?: string;
   inProgressAt?: string;

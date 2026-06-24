@@ -278,7 +278,7 @@ app.get('/api/issues', (req, res) => {
 
 // 2. Report new issue with AI analysis
 app.post('/api/issues', async (req, res) => {
-  const { title, description, category, latitude, longitude, reporter, imageUrl } = req.body;
+  const { title, description, category, latitude, longitude, reporter, imageUrl, videoUrl } = req.body;
   if (!title || !description || !category || !latitude || !longitude || !reporter) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
@@ -403,6 +403,7 @@ Provide the output strictly matching the schema with category, severity, safetyT
     createdAt: now,
     updatedAt: now,
     imageUrl: imageUrl || undefined,
+    videoUrl: videoUrl || undefined,
     aiCategorized,
     aiSeverity,
     aiSafetyTips,
@@ -524,7 +525,7 @@ app.post('/api/issues/:id/verify', (req, res) => {
 
 // 6. Update status (e.g. resolve or set in-progress)
 app.post('/api/issues/:id/status', (req, res) => {
-  const { status, resolutionNotes, resolutionImageUrl } = req.body;
+  const { status, resolutionNotes, resolutionImageUrl, resolutionVideoUrl } = req.body;
   if (!status) return res.status(400).json({ error: 'Status is required' });
 
   const issues = readIssues();
@@ -555,6 +556,7 @@ app.post('/api/issues/:id/status', (req, res) => {
   } else if (status === 'resolved') {
     issue.resolutionNotes = resolutionNotes || 'Resolved by community/municipal cooperation.';
     issue.resolutionImageUrl = resolutionImageUrl || undefined;
+    issue.resolutionVideoUrl = resolutionVideoUrl || undefined;
     issue.resolvedAt = statusTime;
 
     if (!issue.verifiedAt) {

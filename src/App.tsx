@@ -7,6 +7,8 @@ import StatsLeaderboard from './components/StatsLeaderboard';
 import CivicAssistant from './components/CivicAssistant';
 import { WorkspaceHub } from './components/WorkspaceHub';
 import AgentPipeline from './components/AgentPipeline';
+import InteractiveLogo, { generateSvgCode } from './components/InteractiveLogo';
+import CameraMediaCapture from './components/CameraMediaCapture';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ShieldAlert,
@@ -26,7 +28,16 @@ import {
   RefreshCw,
   UserCheck,
   BookOpen,
-  Layers
+  Layers,
+  Home,
+  ArrowRight,
+  ChevronDown,
+  Camera,
+  Video,
+  Download,
+  Copy,
+  Check,
+  Film
 } from 'lucide-react';
 
 export default function App() {
@@ -76,8 +87,32 @@ export default function App() {
     };
   }, []);
 
-  // Tabs: 'map' | 'predictive' | 'leaderboard' | 'assistant' | 'workspace' | 'pipeline'
-  const [activeTab, setActiveTab] = useState<'map' | 'predictive' | 'leaderboard' | 'assistant' | 'workspace' | 'pipeline'>('map');
+  // Tabs: 'home' | 'map' | 'predictive' | 'leaderboard' | 'assistant' | 'workspace' | 'pipeline'
+  const [activeTab, setActiveTab] = useState<'home' | 'map' | 'predictive' | 'leaderboard' | 'assistant' | 'workspace' | 'pipeline'>('home');
+  const [handbookSubTab, setHandbookSubTab] = useState<'overview' | 'workflow' | 'features' | 'faq' | 'logolab'>('overview');
+
+  // Logo Customization Global State
+  const [logoTheme, setLogoTheme] = useState<'amber' | 'toxic' | 'cobalt' | 'crimson' | 'onyx'>('amber');
+  const [logoShape, setLogoShape] = useState<'diamond' | 'circle' | 'hexagon' | 'shield' | 'triangle'>('diamond');
+  const [logoIcon, setLogoIcon] = useState<'p' | 'eye' | 'shield' | 'grid' | 'hazard'>('p');
+  const [logoStroke, setLogoStroke] = useState<number>(1.5);
+  const [logoRotate, setLogoRotate] = useState<number>(45);
+  const [logoScale, setLogoScale] = useState<number>(1);
+  const [logoAnim, setLogoAnim] = useState<'pulse' | 'spin' | 'ping' | 'breath' | 'none'>('pulse');
+
+  const logoConfig = {
+    theme: logoTheme,
+    shape: logoShape,
+    icon: logoIcon,
+    strokeWidth: logoStroke,
+    rotation: logoRotate,
+    scale: logoScale,
+    animation: logoAnim
+  };
+
+  // Capture Photo/Video states for reporting
+  const [reportedMediaUrl, setReportedMediaUrl] = useState<string | null>(null);
+  const [reportedMediaType, setReportedMediaType] = useState<'image' | 'video' | null>(null);
 
   // Issue Lists & Syncing
   const [issues, setIssues] = useState<Issue[]>([]);
@@ -193,7 +228,9 @@ export default function App() {
           category: newCat,
           latitude: newLat,
           longitude: newLng,
-          reporter: currentUser
+          reporter: currentUser,
+          imageUrl: reportedMediaType === 'image' ? reportedMediaUrl : undefined,
+          videoUrl: reportedMediaType === 'video' ? reportedMediaUrl : undefined
         })
       });
 
@@ -216,6 +253,8 @@ export default function App() {
         setNewCat('pothole');
         setNewLat(null);
         setNewLng(null);
+        setReportedMediaUrl(null);
+        setReportedMediaType(null);
         setReportingOpen(false);
         // Refresh & focus
         await fetchIssues();
@@ -282,12 +321,23 @@ export default function App() {
   };
 
   // Update status (e.g. resolve) action
-  const handleUpdateStatus = async (issueId: string, status: IssueStatus, notes?: string) => {
+  const handleUpdateStatus = async (
+    issueId: string, 
+    status: IssueStatus, 
+    notes?: string, 
+    resolutionImageUrl?: string, 
+    resolutionVideoUrl?: string
+  ) => {
     try {
       const res = await fetch(`/api/issues/${issueId}/status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, resolutionNotes: notes })
+        body: JSON.stringify({ 
+          status, 
+          resolutionNotes: notes, 
+          resolutionImageUrl, 
+          resolutionVideoUrl 
+        })
       });
       if (res.ok) {
         const updatedIssue = await res.json();
@@ -396,9 +446,7 @@ export default function App() {
               <div className="absolute inset-0 rounded-full border-4 border-dashed border-amber-500/20" />
               <div className="absolute inset-2 rounded-full border border-double border-amber-500/40 animate-pulse" />
               <div className="absolute inset-4 rounded-full border border-dotted border-amber-500/60" />
-              <div className="w-8 h-8 bg-amber-500 rounded-sm rotate-45 flex items-center justify-center shadow-lg shadow-amber-500/20">
-                <span className="text-black font-black text-sm -rotate-45 font-mono">P</span>
-              </div>
+              <InteractiveLogo config={logoConfig} size={48} className="shadow-lg shadow-amber-500/20" />
             </motion.div>
 
             {/* Title / Description */}
@@ -465,9 +513,7 @@ export default function App() {
       {/* Top Professional Header Navigation */}
       <header className="sticky top-0 z-40 bg-[#0a0a0a] border-b border-white/5 px-6 py-4 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-amber-500 rounded-sm rotate-45 flex items-center justify-center shrink-0">
-            <span className="text-black font-black text-xs -rotate-45 font-mono">P</span>
-          </div>
+          <InteractiveLogo config={logoConfig} size={32} className="shrink-0" />
           <div>
             <h1 className="font-bold text-base text-white tracking-tight flex items-center gap-1.5">
               PublicEye <span className="text-[9px] bg-white/5 border border-white/5 text-slate-400 px-2 py-0.5 rounded font-mono font-medium">Valencia-Dolores</span>
@@ -478,6 +524,16 @@ export default function App() {
 
         {/* Tab Selection Row */}
         <nav className="hidden md:flex items-center gap-1.5 bg-white/[0.03] p-1 rounded-xl border border-white/5">
+          <button
+            onClick={() => setActiveTab('home')}
+            className={`px-4 py-2 text-xs font-semibold rounded-lg flex items-center gap-2 cursor-pointer transition-all ${
+              activeTab === 'home'
+                ? 'bg-amber-500 text-black shadow-sm font-bold'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Home className="w-4 h-4" /> Home & Handbook
+          </button>
           <button
             onClick={() => setActiveTab('map')}
             className={`px-4 py-2 text-xs font-semibold rounded-lg flex items-center gap-2 cursor-pointer transition-all ${
@@ -578,7 +634,15 @@ export default function App() {
       </header>
 
       {/* Mobile Tab Selection Header Row */}
-      <nav className="md:hidden flex items-center justify-around gap-1 bg-[#0a0a0a] border-b border-white/5 p-2 sticky top-[73px] z-30">
+      <nav className="md:hidden flex items-center justify-around gap-1 bg-[#0a0a0a] border-b border-white/5 p-2 sticky top-[73px] z-30 overflow-x-auto">
+        <button
+          onClick={() => setActiveTab('home')}
+          className={`flex-1 py-2 text-[10px] font-bold rounded-lg flex flex-col items-center justify-center cursor-pointer min-w-[50px] ${
+            activeTab === 'home' ? 'bg-amber-500 text-black shadow-sm' : 'text-slate-400'
+          }`}
+        >
+          <Home className="w-4 h-4 mb-0.5" /> Home
+        </button>
         <button
           onClick={() => setActiveTab('map')}
           className={`flex-1 py-2 text-[10px] font-bold rounded-lg flex flex-col items-center justify-center cursor-pointer ${
@@ -632,6 +696,741 @@ export default function App() {
       {/* Main Content Area */}
       <main className="flex-1 p-6 max-w-7xl w-full mx-auto">
         <AnimatePresence mode="wait">
+          {/* 0. Home & Handbook View */}
+          {activeTab === 'home' && (
+            <motion.div
+              key="home-tab"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-8"
+            >
+              {/* Hero Banner Section */}
+              <div className="relative overflow-hidden rounded-3xl border border-white/5 bg-gradient-to-br from-amber-500/10 via-transparent to-transparent p-8 md:p-12 shadow-2xl">
+                <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/5 blur-[100px] rounded-full pointer-events-none" />
+                
+                <div className="max-w-3xl space-y-4 relative z-10">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-bold uppercase tracking-widest rounded-full font-mono">
+                    <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-ping" />
+                    Autonomous District Ledger Active
+                  </div>
+                  
+                  <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-none">
+                    Decentralized Civic Auditing & <span className="text-amber-500">Predictive Diagnostics</span>
+                  </h1>
+                  
+                  <p className="text-sm md:text-base text-slate-400 leading-relaxed max-w-2xl">
+                    Welcome to <strong className="text-slate-200">PublicEye</strong>, the next-generation civic technology framework for the Valencia-Dolores District. We combine peer-to-peer neighbor audits with AI-driven predictive maintenance to secure municipal infrastructure and automate public action.
+                  </p>
+
+                  <div className="flex flex-wrap gap-3 pt-2">
+                    <button
+                      onClick={() => setActiveTab('map')}
+                      className="bg-amber-500 hover:bg-amber-600 text-black font-extrabold text-xs px-5 py-3 rounded-xl flex items-center gap-2 cursor-pointer transition-all shadow-lg shadow-amber-500/15"
+                    >
+                      <Compass className="w-4 h-4" /> Go to District Map <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('assistant')}
+                      className="bg-white/5 hover:bg-white/10 text-white font-bold text-xs px-5 py-3 rounded-xl border border-white/5 flex items-center gap-2 cursor-pointer transition-all"
+                    >
+                      <Sparkles className="w-4 h-4 text-amber-500" /> Talk to Civic AI Copilot
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sub-tab Navigation */}
+              <div className="border-b border-white/5">
+                <div className="flex flex-wrap gap-2 -mb-px">
+                  {[
+                    { id: 'overview', label: 'Overview & Stats', icon: Home },
+                    { id: 'workflow', label: 'How it Works', icon: Clock },
+                    { id: 'features', label: 'Platform Features', icon: Layers },
+                    { id: 'faq', label: 'FAQ & Help Center', icon: HelpCircle },
+                    { id: 'logolab', label: 'Logo Laboratory', icon: Sparkles },
+                  ].map((subTab) => {
+                    const Icon = subTab.icon;
+                    const isActive = handbookSubTab === subTab.id;
+                    return (
+                      <button
+                        key={subTab.id}
+                        onClick={() => setHandbookSubTab(subTab.id as any)}
+                        className={`px-5 py-3 text-xs font-bold border-b-2 flex items-center gap-2 cursor-pointer transition-all ${
+                          isActive
+                            ? 'border-amber-500 text-amber-500'
+                            : 'border-transparent text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <Icon className={`w-4 h-4 ${isActive ? 'text-amber-500' : ''}`} />
+                        {subTab.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Handbook Sub-tab Contents */}
+              <AnimatePresence mode="wait">
+                {/* 1. Overview */}
+                {handbookSubTab === 'overview' && (
+                  <motion.div
+                    key="overview-subtab"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="space-y-6"
+                  >
+                    {/* Bento Grid Metrics */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 space-y-2">
+                        <div className="flex items-center justify-between text-slate-500">
+                          <span className="text-[10px] font-bold uppercase tracking-wider font-mono">Enrolled District Auditors</span>
+                          <Users className="w-4 h-4 text-amber-500" />
+                        </div>
+                        <div className="text-2xl font-extrabold text-white">14,820</div>
+                        <p className="text-[10px] text-slate-500 font-medium">Active civic participants verifying local infrastructure</p>
+                      </div>
+
+                      <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 space-y-2">
+                        <div className="flex items-center justify-between text-slate-500">
+                          <span className="text-[10px] font-bold uppercase tracking-wider font-mono">Peer-Led Ledger Accuracy</span>
+                          <UserCheck className="w-4 h-4 text-emerald-500" />
+                        </div>
+                        <div className="text-2xl font-extrabold text-white">94.2%</div>
+                        <p className="text-[10px] text-slate-500 font-medium">Proportion of verified reports confirmed by on-site neighbors</p>
+                      </div>
+
+                      <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 space-y-2">
+                        <div className="flex items-center justify-between text-slate-500">
+                          <span className="text-[10px] font-bold uppercase tracking-wider font-mono">SLA Auto-Dispatch</span>
+                          <Layers className="w-4 h-4 text-amber-500" />
+                        </div>
+                        <div className="text-2xl font-extrabold text-white">12 Models</div>
+                        <p className="text-[10px] text-slate-500 font-medium">Neural prediction clusters monitoring district sewer and roads</p>
+                      </div>
+
+                      <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 space-y-2">
+                        <div className="flex items-center justify-between text-slate-500">
+                          <span className="text-[10px] font-bold uppercase tracking-wider font-mono">Average Resolution SLA</span>
+                          <Clock className="w-4 h-4 text-blue-500" />
+                        </div>
+                        <div className="text-2xl font-extrabold text-white">2.4 Days</div>
+                        <p className="text-[10px] text-slate-500 font-medium">Mean duration from citizen post to verified field repair</p>
+                      </div>
+                    </div>
+
+                    {/* Left/Right splitting section */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                      <div className="lg:col-span-8 bg-white/[0.01] border border-white/5 rounded-2xl p-6 space-y-4">
+                        <h3 className="font-extrabold text-white text-base">Municipal Node Update Feed</h3>
+                        <div className="space-y-3.5">
+                          <div className="flex gap-3 text-xs leading-relaxed font-sans">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                            <div>
+                              <span className="font-mono text-[10px] text-slate-500 block">System Event • 4 minutes ago</span>
+                              <p className="text-slate-300">Neighborhood audit completed for <strong className="text-slate-200">Issue #104 (Pothole at Calle de Valencia)</strong>. Status promoted to <span className="text-amber-500 font-bold">Verified</span> with 3 verification logs and 0 disputes.</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-3 text-xs leading-relaxed font-sans">
+                            <span className="w-2 h-2 rounded-full bg-amber-500 mt-1.5 shrink-0 animate-pulse" />
+                            <div>
+                              <span className="font-mono text-[10px] text-slate-500 block">AI Agent Dispatch • 28 minutes ago</span>
+                              <p className="text-slate-300">AI Agent <strong className="text-slate-200">VisionNode-03</strong> run completed on sewer system satellite imagery: Predicted water leak anomaly near coordinates <code className="text-amber-500 bg-white/5 px-1 rounded font-mono font-sans">37.766, -122.424</code>. Status logged to workspace.</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-3 text-xs leading-relaxed font-sans">
+                            <span className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 shrink-0" />
+                            <div>
+                              <span className="font-mono text-[10px] text-slate-500 block">SLA Resolution Log • 2 hours ago</span>
+                              <p className="text-slate-300">Issue <strong className="text-slate-200">"Damaged pedestrian guardrail"</strong> resolved. Closure log appended: <em className="text-slate-400">"Steel rail section replaced, anchor bolts re-torqued."</em> Checked on foot by District Auditor luffyfocusmode@gmail.com.</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right Sidebar Quick Guide */}
+                      <div className="lg:col-span-4 bg-white/[0.02] border border-white/5 rounded-2xl p-6 space-y-4 flex flex-col justify-between">
+                        <div className="space-y-3">
+                          <h3 className="font-extrabold text-white text-base">Your Active Identity</h3>
+                          <div className="bg-black/40 border border-white/5 rounded-xl p-4 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+                              <span className="text-xs font-bold text-slate-200 font-mono leading-none">{currentUser.split('@')[0]}</span>
+                            </div>
+                            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest block">District Auditor Role</span>
+                            <div className="border-t border-white/5 pt-2 mt-2 flex justify-between text-[11px] text-slate-400">
+                              <span>Reputation Level:</span>
+                              <span className="text-amber-500 font-bold">140 XP (Gold Node)</span>
+                            </div>
+                          </div>
+                          <p className="text-xs text-slate-400 leading-relaxed font-sans">
+                            Your votes, comments, and reports directly alter the state of municipal work orders. If you inspect an issue physically in Valencia-Dolores, click <strong>"Audit & Log Verification"</strong> inside the issue detail card to contribute to the peer-reviewed district ledger.
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setNewLat(37.765);
+                            setNewLng(-122.421);
+                            setReportingOpen(true);
+                          }}
+                          className="w-full bg-amber-500 hover:bg-amber-600 text-black font-extrabold text-xs py-2.5 rounded-xl text-center cursor-pointer block transition-colors"
+                        >
+                          <Plus className="inline w-4 h-4 mr-1.5" /> File a New Incident Report
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* 2. How it Works */}
+                {handbookSubTab === 'workflow' && (
+                  <motion.div
+                    key="workflow-subtab"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="bg-white/[0.01] border border-white/5 rounded-3xl p-6 md:p-8 space-y-8"
+                  >
+                    <div className="max-w-2xl">
+                      <h3 className="font-extrabold text-white text-lg">Interactive Workflow Map</h3>
+                      <p className="text-slate-400 text-xs leading-relaxed mt-1">
+                        Learn how reports are filed, vetted, prioritized, dispatched, and cataloged. This system completely bypasses central bureaucracy, making district maintenance autonomous and verifiable.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-6 relative">
+                      {/* Workflow Card 1 */}
+                      <div className="bg-black/30 border border-white/5 p-5 rounded-2xl space-y-3 relative">
+                        <span className="absolute -top-3 left-4 bg-amber-500 text-black text-[10px] font-black font-mono px-2.5 py-0.5 rounded-full">STEP 01</span>
+                        <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
+                          <Plus className="w-4 h-4" />
+                        </div>
+                        <h4 className="font-bold text-xs text-white">Citizen Report</h4>
+                        <p className="text-[11px] text-slate-400 leading-normal">
+                          Citizens submit issues on the real-time map with GPS coordinates, a description, and category (water leak, pothole, sanitation, etc.).
+                        </p>
+                      </div>
+
+                      {/* Workflow Card 2 */}
+                      <div className="bg-black/30 border border-white/5 p-5 rounded-2xl space-y-3 relative">
+                        <span className="absolute -top-3 left-4 bg-amber-500 text-black text-[10px] font-black font-mono px-2.5 py-0.5 rounded-full">STEP 02</span>
+                        <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
+                          <Users className="w-4 h-4" />
+                        </div>
+                        <h4 className="font-bold text-xs text-white">Local Audit Ledger</h4>
+                        <p className="text-[11px] text-slate-400 leading-normal">
+                          Neighbors physically inspect the location. They submit a formal auditing log to "Verify Active" or "Flag Dispute", ensuring ledger validity.
+                        </p>
+                      </div>
+
+                      {/* Workflow Card 3 */}
+                      <div className="bg-black/30 border border-white/5 p-5 rounded-2xl space-y-3 relative">
+                        <span className="absolute -top-3 left-4 bg-amber-500 text-black text-[10px] font-black font-mono px-2.5 py-0.5 rounded-full">STEP 03</span>
+                        <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
+                          <Sparkles className="w-4 h-4" />
+                        </div>
+                        <h4 className="font-bold text-xs text-white">AI Coprocessor</h4>
+                        <p className="text-[11px] text-slate-400 leading-normal">
+                          The Gemini AI Coprocessor calculates a dynamic risk rating (Standard, Moderate, Critical), determines the municipal SLA target, and groups duplicate logs.
+                        </p>
+                      </div>
+
+                      {/* Workflow Card 4 */}
+                      <div className="bg-black/30 border border-white/5 p-5 rounded-2xl space-y-3 relative">
+                        <span className="absolute -top-3 left-4 bg-amber-500 text-black text-[10px] font-black font-mono px-2.5 py-0.5 rounded-full">STEP 04</span>
+                        <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
+                          <Layers className="w-4 h-4" />
+                        </div>
+                        <h4 className="font-bold text-xs text-white">Autonomous Dispatch</h4>
+                        <p className="text-[11px] text-slate-400 leading-normal">
+                          SLA timers trigger dispatches. Repair teams receive machine-readable JSON logs directly through the AI Workspace Hub with optimized task schedules.
+                        </p>
+                      </div>
+
+                      {/* Workflow Card 5 */}
+                      <div className="bg-black/30 border border-white/5 p-5 rounded-2xl space-y-3 relative">
+                        <span className="absolute -top-3 left-4 bg-amber-500 text-black text-[10px] font-black font-mono px-2.5 py-0.5 rounded-full">STEP 05</span>
+                        <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
+                          <CheckCircle className="w-4 h-4" />
+                        </div>
+                        <h4 className="font-bold text-xs text-white">Verified Closure</h4>
+                        <p className="text-[11px] text-slate-400 leading-normal">
+                          A physical resolution log is recorded on the public ledger. An unalterable status timeline shows the entire journey, which is then made public for audits.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-white/5 pt-6 grid grid-cols-1 md:grid-cols-2 gap-6 font-sans">
+                      <div className="space-y-2">
+                        <h4 className="font-bold text-white text-sm">How Citizens and Neighbors Do Work</h4>
+                        <p className="text-slate-400 text-xs leading-relaxed">
+                          Unlike standard municipal tools, PublicEye works best because of peer enforcement. Your participation consists of:
+                        </p>
+                        <ul className="space-y-2 text-xs text-slate-300 list-disc list-inside">
+                          <li><strong className="text-slate-200">Pinpointing</strong> reports on Calle de Dolores and Calle de Valencia.</li>
+                          <li><strong className="text-slate-200">Writing specific logs</strong> (e.g., measuring puddle depth or identifying loose electrical wire cages).</li>
+                          <li><strong className="text-slate-200">Adding comments</strong> in the District Discussion Board of specific incidents.</li>
+                          <li><strong className="text-slate-200">Challenging false reports</strong> by submitting formal "Flag as Dispute" logs.</li>
+                        </ul>
+                      </div>
+
+                      <div className="space-y-2 bg-white/[0.01] border border-white/5 rounded-2xl p-5">
+                        <h4 className="font-bold text-white text-sm">Direct Collaboration Tooltips</h4>
+                        <p className="text-slate-400 text-xs leading-relaxed">
+                          To maximize impact, keep your reports and verification notes highly concrete. Mention nearby street numbers, specify weather triggers (e.g. "Overflows during storm surge"), and use the <strong>"Share Link"</strong> button inside any issue to immediately copy a direct deep-linked URL to post on WhatsApp, Reddit, or Slack channels!
+                        </p>
+                        <div className="pt-2 text-[10px] text-amber-500 font-mono flex items-center gap-1.5">
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          <span>Deep-linked sharing coordinates ledger alignment securely.</span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* 3. Features Directory */}
+                {handbookSubTab === 'features' && (
+                  <motion.div
+                    key="features-subtab"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 font-sans"
+                  >
+                    <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-6 space-y-4 hover:border-amber-500/25 transition-all">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
+                        <Compass className="w-5 h-5" />
+                      </div>
+                      <h3 className="font-bold text-white text-sm">District Map Ledger</h3>
+                      <p className="text-slate-400 text-xs leading-relaxed">
+                        An interactive maps board displaying reported infrastructure failures. Filter by severity level or status, view detailed neighborhood verification logs, and toggle satellite coordinates instantly.
+                      </p>
+                      <button onClick={() => setActiveTab('map')} className="text-xs text-amber-500 hover:text-amber-400 font-bold flex items-center gap-1 cursor-pointer">
+                        View Map <ArrowRight className="w-3 h-3" />
+                      </button>
+                    </div>
+
+                    <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-6 space-y-4 hover:border-amber-500/25 transition-all">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
+                        <Sparkles className="w-5 h-5" />
+                      </div>
+                      <h3 className="font-bold text-white text-sm">AI Predictive Hotspots</h3>
+                      <p className="text-slate-400 text-xs leading-relaxed">
+                        Applies predictive neural networks over local variables (humidity, soil compaction, traffic density) to forecast where critical sanitation, water leak, or pothole failures are highly likely to occur.
+                      </p>
+                      <button onClick={() => setActiveTab('predictive')} className="text-xs text-amber-500 hover:text-amber-400 font-bold flex items-center gap-1 cursor-pointer">
+                        Analyze Hotspots <ArrowRight className="w-3 h-3" />
+                      </button>
+                    </div>
+
+                    <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-6 space-y-4 hover:border-amber-500/25 transition-all">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
+                        <Sparkles className="w-5 h-5 text-amber-500" />
+                      </div>
+                      <h3 className="font-bold text-white text-sm">AI Civic Coprocessor</h3>
+                      <p className="text-slate-400 text-xs leading-relaxed">
+                        An integrated district chat terminal backed by Gemini. Use natural language to inspect municipal statistics, write dispatch orders, search the ledger, or draft repair specifications automatically.
+                      </p>
+                      <button onClick={() => setActiveTab('assistant')} className="text-xs text-amber-500 hover:text-amber-400 font-bold flex items-center gap-1 cursor-pointer">
+                        Consult AI Copilot <ArrowRight className="w-3 h-3" />
+                      </button>
+                    </div>
+
+                    <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-6 space-y-4 hover:border-amber-500/25 transition-all">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
+                        <Award className="w-5 h-5" />
+                      </div>
+                      <h3 className="font-bold text-white text-sm">Leaderboard & Stats</h3>
+                      <p className="text-slate-400 text-xs leading-relaxed">
+                        Tracks top civic contributors by XP earned from logging audits, resolving problems, or filing highly accurate incidents. Features live municipal speed-to-resolution KPI charts.
+                      </p>
+                      <button onClick={() => setActiveTab('leaderboard')} className="text-xs text-amber-500 hover:text-amber-400 font-bold flex items-center gap-1 cursor-pointer">
+                        Check Stats <ArrowRight className="w-3 h-3" />
+                      </button>
+                    </div>
+
+                    <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-6 space-y-4 hover:border-amber-500/25 transition-all">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
+                        <BookOpen className="w-5 h-5" />
+                      </div>
+                      <h3 className="font-bold text-white text-sm">Workspace Hub</h3>
+                      <p className="text-slate-400 text-xs leading-relaxed">
+                        The coordination cockpit for district maintenance teams. View dispatch schedules, review task queues grouped by urgency levels, and log structural resolution notes to close pending tickets.
+                      </p>
+                      <button onClick={() => setActiveTab('workspace')} className="text-xs text-amber-500 hover:text-amber-400 font-bold flex items-center gap-1 cursor-pointer">
+                        Access Workspace <ArrowRight className="w-3 h-3" />
+                      </button>
+                    </div>
+
+                    <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-6 space-y-4 hover:border-amber-500/25 transition-all">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
+                        <Layers className="w-5 h-5 text-amber-500" />
+                      </div>
+                      <h3 className="font-bold text-white text-sm">AI Agent Pipeline</h3>
+                      <p className="text-slate-400 text-xs leading-relaxed">
+                        Inspect the raw multi-agent loop orchestrating PublicEye. Track the neural interactions of the vision agent, database deduplication agent, ward router agent, and public dispatch generator.
+                      </p>
+                      <button onClick={() => setActiveTab('pipeline')} className="text-xs text-amber-500 hover:text-amber-400 font-bold flex items-center gap-1 cursor-pointer">
+                        View Pipeline <ArrowRight className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* 4. FAQ & Accordion Help Center */}
+                {handbookSubTab === 'faq' && (
+                  <motion.div
+                    key="faq-subtab"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="max-w-4xl mx-auto space-y-4 font-sans"
+                  >
+                    <div className="text-center pb-4">
+                      <h3 className="font-extrabold text-white text-lg">Frequently Asked Questions</h3>
+                      <p className="text-slate-400 text-xs mt-1">Get immediate explanations for core platform mechanics and peer consensus.</p>
+                    </div>
+
+                    {[
+                      {
+                        q: 'What makes PublicEye different from traditional 311 systems?',
+                        a: 'Whenever an issue is filed, it begins as "Reported". To prevent spam and false alarms, municipal crews do not schedule work until the neighborhood completes an audit. Any logged user can inspect the location and submit a formal verification log (with notes). When multiple positive audits are registered, the status changes to "Verified". Conversely, if neighbors submit disputations, the risk rating decreases, and AI Coprocessors investigate for false data logging.',
+                      },
+                      {
+                        q: 'How does the AI Coprocessor calculate SLA times automatically?',
+                        a: 'The Coprocessor uses deep prompt instructions with @google/genai. It reads the category, citizen description, and peer verification notes, and then references standardized municipal hazard indexes. For example, a pothole deep enough to damage tires is flagged as "Critical" severity with a strict 24-hour SLA. A minor sanitation issue is flagged as "Standard" severity with a 72-hour SLA. This eliminates administrative overhead.',
+                      },
+                      {
+                        q: 'Can I change my simulated identity to audit under a different name?',
+                        a: 'Yes! In the top-right corner of the platform header, you will see your acting user email (e.g., "luffyfocusmode@gmail.com") next to a "Simulate Other" button. Click that button to input any other email address. This allows you to simulate distinct neighbors, chat from other personas, log independent verification logs, or check dispute interactions on the map.',
+                      },
+                      {
+                        q: 'How are predictive hotspots generated inside the AI insights tab?',
+                        a: 'Predictive hotspots are not random. The predictive model overlays historical failure patterns, rainfall logs, pipe corrosion index metrics, and road surface age data to highlight high-risk hex bins. These hexagons help municipal crews proactively sweep or inspect assets before water main bursts or massive sinkholes emerge.',
+                      },
+                      {
+                        q: 'What is the "Deep Link Share Link" feature?',
+                        a: 'Inside every single issue detail panel, there is a "Share Report Link" button. When clicked, it copies a unique, deep-linked URL representing that specific issue (e.g. `?issueId=101`) to your clipboard. If another neighbor or official clicks this URL, the applet bypasses splash screening and loads the incident details page directly, facilitating peer communication.',
+                      },
+                    ].map((faq, idx) => (
+                      <FAQItem key={idx} question={faq.q} answer={faq.a} />
+                    ))}
+                  </motion.div>
+                )}
+
+                {/* 5. Logo Laboratory */}
+                {handbookSubTab === 'logolab' && (
+                  <motion.div
+                    key="logolab-subtab"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="max-w-6xl mx-auto space-y-6 font-sans text-slate-200"
+                  >
+                    <div className="text-center pb-2">
+                      <h3 className="font-extrabold text-white text-xl flex items-center justify-center gap-2">
+                        <Sparkles className="w-5 h-5 text-amber-500 animate-pulse" /> PublicEye Branding Laboratory
+                      </h3>
+                      <p className="text-slate-400 text-xs mt-1">
+                        Interact, customize, and configure the district's autonomous identity mark. Export production-ready SVG/CSS or apply globally in real-time.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                      {/* Left: Design Controls */}
+                      <div className="lg:col-span-4 bg-white/[0.01] border border-white/5 p-5 rounded-2xl space-y-5">
+                        <h4 className="text-xs font-bold text-slate-300 uppercase tracking-widest font-mono border-b border-white/5 pb-2">
+                          1. Geometry & Colors
+                        </h4>
+
+                        {/* Theme select */}
+                        <div className="space-y-2">
+                          <label className="block text-[10px] font-bold text-slate-400 font-mono uppercase tracking-wider">
+                            Branding Color Palette
+                          </label>
+                          <div className="grid grid-cols-5 gap-1.5">
+                            {(['amber', 'toxic', 'cobalt', 'crimson', 'onyx'] as const).map((t) => {
+                              const colors = {
+                                amber: 'bg-amber-500 border-amber-600',
+                                toxic: 'bg-emerald-500 border-emerald-600',
+                                cobalt: 'bg-blue-500 border-blue-600',
+                                crimson: 'bg-red-500 border-red-600',
+                                onyx: 'bg-slate-300 border-slate-400',
+                              }[t];
+                              return (
+                                <button
+                                  key={t}
+                                  type="button"
+                                  onClick={() => setLogoTheme(t)}
+                                  className={`h-8 rounded-lg flex items-center justify-center border text-[9px] font-bold capitalize transition-all cursor-pointer ${colors} ${
+                                    logoTheme === t ? 'ring-2 ring-white scale-105 text-black' : 'opacity-60 hover:opacity-100 text-slate-900'
+                                  }`}
+                                >
+                                  {t === 'onyx' ? 'Stealth' : t}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Shape select */}
+                        <div className="space-y-2">
+                          <label className="block text-[10px] font-bold text-slate-400 font-mono uppercase tracking-wider">
+                            Outer Containment Frame
+                          </label>
+                          <div className="grid grid-cols-3 gap-1.5">
+                            {(['diamond', 'circle', 'hexagon', 'shield', 'triangle'] as const).map((s) => (
+                              <button
+                                key={s}
+                                type="button"
+                                onClick={() => setLogoShape(s)}
+                                className={`px-2.5 py-1.5 text-[10px] font-bold capitalize rounded-lg border cursor-pointer transition-all ${
+                                  logoShape === s
+                                    ? 'bg-white/10 text-white border-amber-500/50'
+                                    : 'bg-transparent text-slate-400 border-white/5 hover:text-slate-200'
+                                }`}
+                              >
+                                {s}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Inner icon select */}
+                        <div className="space-y-2">
+                          <label className="block text-[10px] font-bold text-slate-400 font-mono uppercase tracking-wider">
+                            Core Emblem Insignia
+                          </label>
+                          <div className="grid grid-cols-5 gap-1.5">
+                            {(['p', 'eye', 'shield', 'grid', 'hazard'] as const).map((ic) => (
+                              <button
+                                key={ic}
+                                type="button"
+                                onClick={() => setLogoIcon(ic)}
+                                className={`py-1.5 text-[10px] font-extrabold uppercase rounded-lg border cursor-pointer transition-all ${
+                                  logoIcon === ic
+                                    ? 'bg-amber-500 text-black border-amber-600'
+                                    : 'bg-transparent text-slate-400 border-white/5 hover:text-slate-200'
+                                }`}
+                                title={`Use ${ic} icon`}
+                              >
+                                {ic}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <h4 className="text-xs font-bold text-slate-300 uppercase tracking-widest font-mono border-b border-white/5 pb-2 pt-2">
+                          2. Precision Tuning
+                        </h4>
+
+                        {/* Sliders */}
+                        <div className="space-y-3 font-mono text-[10px] text-slate-400">
+                          {/* Stroke Slider */}
+                          <div className="space-y-1">
+                            <div className="flex justify-between">
+                              <span>Stroke Weight</span>
+                              <span className="text-white">{logoStroke.toFixed(1)}px</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="1"
+                              max="5"
+                              step="0.5"
+                              value={logoStroke}
+                              onChange={(e) => setLogoStroke(Number(e.target.value))}
+                              className="w-full accent-amber-500 bg-white/5 rounded-lg h-1"
+                            />
+                          </div>
+
+                          {/* Rotate Slider */}
+                          <div className="space-y-1">
+                            <div className="flex justify-between">
+                              <span>Rotation Angle</span>
+                              <span className="text-white">{logoRotate}°</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="0"
+                              max="360"
+                              step="15"
+                              value={logoRotate}
+                              onChange={(e) => setLogoRotate(Number(e.target.value))}
+                              className="w-full accent-amber-500 bg-white/5 rounded-lg h-1"
+                            />
+                          </div>
+
+                          {/* Scale Slider */}
+                          <div className="space-y-1">
+                            <div className="flex justify-between">
+                              <span>Global Scaling</span>
+                              <span className="text-white">{logoScale.toFixed(2)}x</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="0.8"
+                              max="1.3"
+                              step="0.05"
+                              value={logoScale}
+                              onChange={(e) => setLogoScale(Number(e.target.value))}
+                              className="w-full accent-amber-500 bg-white/5 rounded-lg h-1"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Animation Select */}
+                        <div className="space-y-2 pt-2">
+                          <label className="block text-[10px] font-bold text-slate-400 font-mono uppercase tracking-wider">
+                            Surveillance Animation Routine
+                          </label>
+                          <div className="grid grid-cols-2 gap-1.5">
+                            {(['pulse', 'spin', 'ping', 'breath', 'none'] as const).map((an) => (
+                              <button
+                                key={an}
+                                type="button"
+                                onClick={() => setLogoAnim(an)}
+                                className={`px-2 py-1 text-[10px] font-bold capitalize rounded-lg border cursor-pointer transition-all ${
+                                  logoAnim === an
+                                    ? 'bg-white/10 text-white border-amber-500/50'
+                                    : 'bg-transparent text-slate-400 border-white/5 hover:text-slate-200'
+                                }`}
+                              >
+                                {an}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Middle: Canvas and Mockups */}
+                      <div className="lg:col-span-5 flex flex-col gap-6">
+                        {/* Live Canvas */}
+                        <div className="bg-black/50 border border-white/5 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[220px] relative overflow-hidden group">
+                          <div className="absolute inset-0 bg-radial-gradient from-white/[0.02] to-transparent pointer-events-none" />
+                          <div className="absolute top-2.5 left-3 text-[9px] font-mono text-slate-500 tracking-wider flex items-center gap-1">
+                            <span className="w-1 h-1 bg-amber-500 rounded-full animate-ping" />
+                            INTERACTIVE GENERATIVE VECTOR PREVIEW
+                          </div>
+
+                          <InteractiveLogo config={logoConfig} size={110} />
+
+                          <div className="text-[10px] font-mono text-slate-500 mt-5 uppercase">
+                            RENDER_SCALE: {logoScale.toFixed(2)} | ROTATION: {logoRotate}° | SHAPE: {logoShape.toUpperCase()}
+                          </div>
+                        </div>
+
+                        {/* Real-world Mockups */}
+                        <div className="bg-white/[0.01] border border-white/5 p-4 rounded-2xl space-y-3.5">
+                          <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">
+                            Real-World Brand Mockup Scenarios
+                          </h4>
+
+                          <div className="grid grid-cols-2 gap-3 text-left">
+                            {/* App Icon Mockup */}
+                            <div className="bg-[#151515] border border-white/5 rounded-xl p-3 flex items-center gap-3">
+                              <div className="w-12 h-12 bg-black rounded-xl border border-white/10 flex items-center justify-center shrink-0 shadow-inner">
+                                <InteractiveLogo config={logoConfig} size={30} />
+                              </div>
+                              <div>
+                                <span className="block text-[10px] font-mono font-bold text-slate-300">App Icon</span>
+                                <span className="block text-[8px] text-slate-500 leading-none">Dolores Auditing v1.4</span>
+                              </div>
+                            </div>
+
+                            {/* Citizen Ledger ID Card */}
+                            <div className="bg-[#151515] border border-white/5 rounded-xl p-3 flex flex-col justify-between h-[80px] relative overflow-hidden">
+                              <div className="absolute top-0 right-0 w-20 h-20 bg-amber-500/5 blur-md pointer-events-none" />
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <span className="block text-[8px] font-mono font-black text-slate-400 uppercase tracking-wide">CITIZEN AUDITOR ID</span>
+                                  <span className="block text-[7px] font-mono text-slate-600 leading-none">ACTIVE AUTHORIZATION</span>
+                                </div>
+                                <InteractiveLogo config={logoConfig} size={20} />
+                              </div>
+                              <span className="text-[7px] font-mono text-slate-500 mt-2">ID: {currentUser.split('@')[0]}@district.p2p</span>
+                            </div>
+
+                            {/* Safety Vest Screenprint */}
+                            <div className="bg-gradient-to-r from-lime-500/95 to-green-500/95 border border-lime-400 rounded-xl p-3 flex items-center gap-3 relative overflow-hidden h-[80px]">
+                              {/* Vest zipper line */}
+                              <div className="absolute inset-y-0 right-1/2 border-r border-black/15 border-dashed" />
+                              <div className="w-9 h-9 bg-black/90 rounded-lg flex items-center justify-center shrink-0">
+                                <InteractiveLogo config={logoConfig} size={24} />
+                              </div>
+                              <div className="relative z-10">
+                                <span className="block text-[9px] font-extrabold text-black uppercase leading-tight font-sans">CIVIC SAFETY CREW</span>
+                                <span className="block text-[7px] font-medium text-black/70 font-mono leading-none">HIGH-VIS EMBLEM</span>
+                              </div>
+                            </div>
+
+                            {/* Browser Favicon */}
+                            <div className="bg-[#151515] border border-white/5 rounded-xl p-3 flex flex-col justify-center h-[80px]">
+                              <div className="bg-[#1e1e1e] border border-white/5 rounded px-2 py-1 flex items-center gap-2 max-w-sm">
+                                <InteractiveLogo config={logoConfig} size={14} />
+                                <span className="text-[8px] font-mono text-slate-400 truncate">PublicEye System Node ...</span>
+                              </div>
+                              <span className="text-[7px] font-mono text-slate-600 mt-2 uppercase text-center">Simulated Browser Tab</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right: Code Exporter */}
+                      <div className="lg:col-span-3 bg-white/[0.01] border border-white/5 p-5 rounded-2xl flex flex-col justify-between space-y-4">
+                        <div className="space-y-3">
+                          <h4 className="text-xs font-bold text-slate-300 uppercase tracking-widest font-mono border-b border-white/5 pb-2">
+                            3. Export Center
+                          </h4>
+
+                          <p className="text-[10px] text-slate-400 leading-relaxed font-mono">
+                            PublicEye uses lightweight inline SVGs. Copy the raw markup below to embed this customized brand asset on any web page.
+                          </p>
+
+                          <div className="relative group">
+                            <textarea
+                              readOnly
+                              value={generateSvgCode(logoConfig)}
+                              rows={10}
+                              className="w-full bg-black/60 border border-white/10 p-3 rounded-xl text-[8px] font-mono text-slate-300 focus:outline-none resize-none leading-normal select-all h-[200px]"
+                            />
+                            
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(generateSvgCode(logoConfig));
+                                const btn = document.getElementById('btn-copy-svg');
+                                if (btn) {
+                                  btn.innerText = '✓ SVG Copied!';
+                                  setTimeout(() => { btn.innerText = 'Copy SVG Markup'; }, 2000);
+                                }
+                              }}
+                              id="btn-copy-svg"
+                              className="absolute bottom-2.5 right-2.5 bg-amber-500 hover:bg-amber-600 text-black font-extrabold text-[9px] px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors shadow-lg"
+                            >
+                              Copy SVG Markup
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 pt-2">
+                          <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest font-mono">CSS System Tokens</span>
+                          <div className="bg-black/40 border border-white/5 rounded-xl p-3 font-mono text-[8px] text-slate-400 space-y-1">
+                            <div>--brand-primary: <span className="text-amber-500">{logoTheme === 'amber' ? '#f59e0b' : logoTheme === 'toxic' ? '#22c55e' : logoTheme === 'cobalt' ? '#3b82f6' : logoTheme === 'crimson' ? '#ef4444' : '#e2e8f0'}</span>;</div>
+                            <div>--brand-stroke: {logoStroke}px;</div>
+                            <div>--brand-shape: '{logoShape}';</div>
+                            <div>--brand-rotation: {logoRotate}deg;</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
+
           {/* 1. Map and Lists View */}
           {activeTab === 'map' && (
             <motion.div
@@ -993,6 +1792,21 @@ export default function App() {
                 />
               </div>
 
+              <div>
+                <CameraMediaCapture
+                  onMediaCaptured={(url, type) => {
+                    setReportedMediaUrl(url);
+                    setReportedMediaType(type);
+                  }}
+                  onClear={() => {
+                    setReportedMediaUrl(null);
+                    setReportedMediaType(null);
+                  }}
+                  capturedUrl={reportedMediaUrl}
+                  capturedType={reportedMediaType}
+                />
+              </div>
+
               <div className="flex items-center gap-1.5 justify-end border-t border-white/5 pt-3">
                 <button
                   type="button"
@@ -1041,5 +1855,40 @@ export default function App() {
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+function FAQItem({ question, answer }: { question: string; answer: string; key?: any }) {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <div className="bg-white/[0.01] border border-white/5 rounded-2xl overflow-hidden transition-colors hover:bg-white/[0.02]">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full text-left p-5 flex items-center justify-between gap-4 cursor-pointer focus:outline-none"
+      >
+        <span className="font-bold text-xs text-white md:text-sm">{question}</span>
+        <motion.div
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
+          className="text-slate-500 hover:text-white shrink-0"
+        >
+          <ChevronDown className="w-4 h-4" />
+        </motion.div>
+      </button>
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: 'easeInOut' }}
+          >
+            <div className="px-5 pb-5 pt-1 text-xs text-slate-400 leading-relaxed border-t border-white/5 bg-black/10">
+              {answer}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
