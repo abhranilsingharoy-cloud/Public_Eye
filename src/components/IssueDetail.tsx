@@ -183,7 +183,7 @@ export default function IssueDetail({
   const currentStepIdx = steps.findIndex(s => s.status === issue.status);
 
   return (
-    <div className="bg-white/[0.02] border border-white/5 rounded-2xl shadow-2xl overflow-hidden flex flex-col h-full">
+    <div className="glass-panel border-0 rounded-2xl shadow-2xl overflow-hidden flex flex-col h-full">
       {/* Detail Header */}
       <div className="p-6 border-b border-white/5 bg-white/[0.01]">
         <div className="flex items-center justify-between gap-3 mb-3">
@@ -199,6 +199,11 @@ export default function IssueDetail({
         </div>
 
         <h3 className="text-xl font-bold text-white leading-snug mb-2">{issue.title}</h3>
+        {issue.address && (
+          <p className="text-xs text-slate-400 mb-3 flex items-center gap-1.5 bg-white/5 p-2 rounded-lg border border-white/5">
+            <MapPin className="w-4 h-4 text-amber-500" /> {issue.address}
+          </p>
+        )}
         <div className="flex items-center justify-between gap-4 text-xs text-slate-400 font-mono relative">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1"><User className="w-3.5 h-3.5 text-slate-500" /> {issue.reporter.split('@')[0]}</span>
@@ -239,7 +244,12 @@ export default function IssueDetail({
         {/* Description */}
         <div>
           <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 font-mono">Citizen Report Details</h4>
-          <p className="text-sm text-slate-300 leading-relaxed bg-white/[0.02] border border-white/5 p-4 rounded-xl">{issue.description}</p>
+          <p className="text-sm text-slate-300 leading-relaxed glass-panel border-0 p-4 rounded-xl">{issue.description}</p>
+          {issue.imageUrl && (
+            <div className="mt-4 rounded-xl overflow-hidden border border-white/10 shadow-lg bg-black/50">
+              <img src={issue.imageUrl} alt="Reported issue evidence" className="w-full object-cover max-h-64" />
+            </div>
+          )}
         </div>
 
         {/* Status Tracker Timeline */}
@@ -349,7 +359,7 @@ export default function IssueDetail({
           <div className="space-y-2 max-h-[160px] overflow-y-auto mb-3">
             {issue.verifications && issue.verifications.length > 0 ? (
               issue.verifications.map((v) => (
-                <div key={v.id} className="bg-white/[0.02] border border-white/5 p-2.5 rounded-lg text-xs flex items-start gap-2.5">
+                <div key={v.id} className="glass-panel border-0 p-2.5 rounded-lg text-xs flex items-start gap-2.5">
                   <Shield className={`w-4 h-4 mt-0.5 shrink-0 ${v.type === 'verify' ? 'text-amber-500' : 'text-red-500'}`} />
                   <div>
                     <div className="flex items-center gap-1.5">
@@ -419,7 +429,7 @@ export default function IssueDetail({
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               onSubmit={(e) => handleVerifySubmit(e, 'verify')}
-              className="mt-3 bg-white/[0.02] border border-white/5 rounded-xl p-3"
+              className="mt-3 glass-panel border-0 rounded-xl p-3"
             >
               <label className="block text-xs font-bold text-slate-300 mb-1.5 font-mono">Formal Verification Log</label>
               <textarea

@@ -30,6 +30,7 @@ export interface Issue {
   status: IssueStatus;
   latitude: number;
   longitude: number;
+  address?: string;
   reporter: string;
   upvotes: number;
   votedUsers: string[];

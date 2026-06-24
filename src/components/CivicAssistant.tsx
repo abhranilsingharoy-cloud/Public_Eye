@@ -272,7 +272,7 @@ I experienced a connection issue. However, based on local cache:
       <div className="lg:col-span-5 space-y-6 flex flex-col justify-between">
         
         {/* Card 1: Synthesized Community Radio (TTS) */}
-        <div className="bg-[#121212] border border-white/5 rounded-2xl p-5 shadow-xl space-y-4 relative overflow-hidden flex flex-col justify-between">
+        <div className="glass-panel border-0 rounded-2xl p-5 shadow-xl space-y-4 relative overflow-hidden flex flex-col justify-between">
           <div className="absolute top-0 right-0 bg-amber-500 text-[9px] font-bold tracking-widest text-black px-2.5 py-1 rounded-bl-lg flex items-center gap-1 font-mono uppercase">
             <Volume2 className="w-3 h-3 fill-black animate-pulse" /> Live Broadcast
           </div>
@@ -329,7 +329,7 @@ I experienced a connection issue. However, based on local cache:
         </div>
 
         {/* Card 2: Municipal Coordinated Dispatch Planner */}
-        <div className="bg-[#121212] border border-white/5 rounded-2xl p-5 shadow-xl space-y-4 flex-1 flex flex-col justify-between">
+        <div className="glass-panel border-0 rounded-2xl p-5 shadow-xl space-y-4 flex-1 flex flex-col justify-between">
           <div>
             <h3 className="font-bold text-xs uppercase tracking-widest text-slate-400 font-mono flex items-center gap-2 mb-2">
               <Wrench className="w-4 h-4 text-amber-500" /> Coordinated Municipal Sweep
@@ -397,7 +397,7 @@ I experienced a connection issue. However, based on local cache:
       </div>
 
       {/* Right panel: Conversational Chat Interface (col-span-7) */}
-      <div className="lg:col-span-7 bg-[#121212] border border-white/5 rounded-2xl flex flex-col h-[550px] shadow-xl overflow-hidden">
+      <div className="lg:col-span-7 glass-panel border-0 rounded-2xl flex flex-col h-[550px] shadow-xl overflow-hidden">
         {/* Chat header */}
         <div className="px-5 py-4 border-b border-white/5 bg-black/20 flex items-center justify-between">
           <div className="flex items-center gap-2.5">

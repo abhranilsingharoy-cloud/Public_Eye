@@ -2,17 +2,93 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
+import http from 'http';
+import { Server as SocketIOServer } from 'socket.io';
+import multer from 'multer';
+import nodemailer from 'nodemailer';
+import webpush from 'web-push';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type } from '@google/genai';
 
+
 dotenv.config();
 
+// Web Push Setup
+const vapidKeys = webpush.generateVAPIDKeys();
+webpush.setVapidDetails(
+  'mailto:admin@public-eye.local',
+  vapidKeys.publicKey,
+  vapidKeys.privateKey
+);
+const pushSubscriptions: any[] = [];
+
+// Nodemailer Ethereal Setup
+let transporter: nodemailer.Transporter | null = null;
+nodemailer.createTestAccount((err, account) => {
+  if (err) {
+    console.error('Failed to create a testing account. ' + err.message);
+    return;
+  }
+  transporter = nodemailer.createTransport({
+    host: account.smtp.host,
+    port: account.smtp.port,
+    secure: account.smtp.secure,
+    auth: {
+      user: account.user,
+      pass: account.pass
+    }
+  });
+});
+
+async function sendDepartmentEmail(issue: any, subject: string) {
+  if (!transporter) return;
+  const mailOptions = {
+    from: '"Public Eye Automated Dispatch" <dispatch@public-eye.local>',
+    to: 'cityworks@valenciadolores.gov',
+    subject: subject,
+    html: `
+      <h2>${issue.title}</h2>
+      <p><strong>Category:</strong> ${issue.category} | <strong>Severity:</strong> ${issue.aiSeverity}</p>
+      <p><strong>Address:</strong> ${issue.address || 'Unknown'}</p>
+      <p><strong>Coordinates:</strong> ${issue.latitude}, ${issue.longitude}</p>
+      <p><strong>Description:</strong> ${issue.description}</p>
+      <h3>AI Analysis & Safety Tips:</h3>
+      <p>${issue.aiSafetyTips}</p>
+      <p><strong>Suggested Action:</strong> ${issue.aiSuggestedAction}</p>
+      <hr />
+      <p><em>This is an automated dispatch from the Public Eye System.</em></p>
+    `
+  };
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Dispatch Email sent: %s', info.messageId);
+    console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
+  } catch (err) {
+    console.error('Email error:', err);
+  }
+}
+
+
 const app = express();
+const server = http.createServer(app);
+const io = new SocketIOServer(server, { cors: { origin: '*' } });
 const PORT = 3000;
 const DATA_DIR = path.join(process.cwd(), 'data');
 const DATA_FILE = path.join(DATA_DIR, 'issues.json');
+const UPLOAD_DIR = path.join(DATA_DIR, 'uploads');
+
+if (!fs.existsSync(UPLOAD_DIR)) {
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
+});
+const upload = multer({ storage });
 
 app.use(express.json());
+app.use('/uploads', express.static(UPLOAD_DIR));
 
 // Ensure data directory and file exist
 if (!fs.existsSync(DATA_DIR)) {
@@ -187,6 +263,9 @@ function readIssues() {
 // Write issues helper
 function writeIssues(issues: any[]) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(issues, null, 2), 'utf-8');
+  if (io) {
+    io.emit('issues_updated', issues);
+  }
 }
 
 // Lazy Gemini AI initialization
@@ -207,18 +286,52 @@ function getGeminiAI() {
 
 // 1. Get all issues
 app.get('/api/issues', (req, res) => {
+  
   const issues = readIssues();
+
   res.json(issues);
 });
 
 // 2. Report new issue with AI analysis
-app.post('/api/issues', async (req, res) => {
-  const { title, description, category, latitude, longitude, reporter, imageUrl } = req.body;
+
+// Push Notifications Endpoints
+app.get('/api/vapidPublicKey', (req, res) => {
+  res.send(vapidKeys.publicKey);
+});
+
+app.post('/api/subscribe', (req, res) => {
+  const subscription = req.body;
+  // In a real app, save this to a database linked to the user
+  if (!pushSubscriptions.find(s => s.endpoint === subscription.endpoint)) {
+    pushSubscriptions.push(subscription);
+  }
+  res.status(201).json({});
+});
+
+// 2. Report new issue with AI analysis
+app.post('/api/issues', upload.single('image'), async (req, res) => {
+  const { title, description, category, latitude, longitude, reporter } = req.body;
+  const imageUrl = req.file ? `/uploads/${req.file.filename}` : req.body.imageUrl;
   if (!title || !description || !category || !latitude || !longitude || !reporter) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
   const issues = readIssues();
+  
+  // Reverse Geocode
+  let address = '';
+  try {
+    const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`, {
+      headers: { 'User-Agent': 'PublicEye/1.0' }
+    });
+    if (geoRes.ok) {
+      const geoData = await geoRes.json();
+      address = geoData.display_name || '';
+    }
+  } catch (err) {
+    console.error('Geocoding error:', err);
+  }
+
   const id = 'issue-' + Date.now();
 
   let aiCategorized = false;
@@ -238,9 +351,20 @@ User-selected category hint: "${category}"
 
 Provide the output strictly matching the schema with category, severity, safetyTips, suggestedAction, and tags.`;
 
+      let multimodalParts: any[] = [{ text: prompt }];
+      if (req.file) {
+        const fileData = fs.readFileSync(req.file.path).toString('base64');
+        multimodalParts.unshift({
+          inlineData: {
+            data: fileData,
+            mimeType: req.file.mimetype
+          }
+        });
+      }
+
       const response = await ai.models.generateContent({
         model: 'gemini-3.5-flash',
-        contents: prompt,
+        contents: multimodalParts,
         config: {
           systemInstruction: 'You are a community-focused AI expert in municipal maintenance and public hazard mitigation. Your goal is to categorize and evaluate citizen complaints accurately to speed up response and ensure public safety.',
           responseMimeType: 'application/json',
@@ -331,13 +455,14 @@ Provide the output strictly matching the schema with category, severity, safetyT
     category,
     status: 'reported',
     latitude: Number(latitude),
-    longitude: Number(longitude),
+    longitude: parseFloat(longitude),
+    address,
     reporter,
+    imageUrl,
     upvotes: 1,
     votedUsers: [reporter],
     createdAt: now,
     updatedAt: now,
-    imageUrl: imageUrl || undefined,
     aiCategorized,
     aiSeverity,
     aiSafetyTips,
@@ -479,7 +604,27 @@ app.post('/api/issues/:id/status', (req, res) => {
         issue.statusHistory.push({ status: 'verified', timestamp: statusTime });
       }
     }
-  } else if (status === 'resolved') {
+  } else 
+    if (status === 'resolved' && issue.status !== 'resolved') {
+      issue.resolvedAt = now;
+      issue.resolutionNotes = notes || 'Resolved by authority.';
+      
+      // Send Email
+      sendDepartmentEmail(issue, `ISSUE RESOLVED: ${issue.title}`);
+      
+      // Send Push Notification
+      const notificationPayload = JSON.stringify({
+        title: 'Issue Resolved!',
+        body: `Your report "${issue.title}" has been marked as resolved by the city. Thank you!`,
+        icon: '/pwa-192x192.png'
+      });
+      
+      // Broadcast to all subs (in real app, filter by user)
+      Promise.all(pushSubscriptions.map(sub => webpush.sendNotification(sub, notificationPayload)))
+        .catch(err => console.error('Push error', err));
+    }
+
+    if (false) {
     issue.resolutionNotes = resolutionNotes || 'Resolved by community/municipal cooperation.';
     issue.resolutionImageUrl = resolutionImageUrl || undefined;
     issue.resolvedAt = statusTime;
@@ -986,7 +1131,7 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  server.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
 }

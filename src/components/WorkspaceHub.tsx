@@ -499,7 +499,7 @@ export const WorkspaceHub: React.FC<WorkspaceHubProps> = ({ issues, currentUser 
   };
 
   return (
-    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 shadow-xl space-y-6">
+    <div className="glass-panel border-0 rounded-2xl p-6 shadow-xl space-y-6">
       
       {/* Auth Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-white/5 pb-5 gap-4">
@@ -644,7 +644,7 @@ export const WorkspaceHub: React.FC<WorkspaceHubProps> = ({ issues, currentUser 
                       <select
                         value={selectedIssueForEvent}
                         onChange={(e) => setSelectedIssueForEvent(e.target.value)}
-                        className="w-full bg-[#121212] border border-white/10 px-3 py-2 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-amber-500 text-xs"
+                        className="w-full glass-panel px-3 py-2 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-amber-500 text-xs"
                         required
                       >
                         <option value="">-- Choose an issue --</option>
@@ -663,7 +663,7 @@ export const WorkspaceHub: React.FC<WorkspaceHubProps> = ({ issues, currentUser 
                           type="date"
                           value={eventDate}
                           onChange={(e) => setEventDate(e.target.value)}
-                          className="w-full bg-[#121212] border border-white/10 px-3 py-2 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-amber-500 text-xs"
+                          className="w-full glass-panel px-3 py-2 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-amber-500 text-xs"
                           required
                         />
                       </div>
@@ -673,7 +673,7 @@ export const WorkspaceHub: React.FC<WorkspaceHubProps> = ({ issues, currentUser 
                           type="time"
                           value={eventTime}
                           onChange={(e) => setEventTime(e.target.value)}
-                          className="w-full bg-[#121212] border border-white/10 px-3 py-2 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-amber-500 text-xs"
+                          className="w-full glass-panel px-3 py-2 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-amber-500 text-xs"
                           required
                         />
                       </div>
@@ -762,7 +762,7 @@ export const WorkspaceHub: React.FC<WorkspaceHubProps> = ({ issues, currentUser 
                       <select
                         value={selectedIssueForForm}
                         onChange={(e) => setSelectedIssueForForm(e.target.value)}
-                        className="w-full bg-[#121212] border border-white/10 px-3 py-2 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-amber-500 text-xs"
+                        className="w-full glass-panel px-3 py-2 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-amber-500 text-xs"
                       >
                         <option value="">General District Audit (No specific issue)</option>
                         {issues.map(issue => (
@@ -839,7 +839,7 @@ export const WorkspaceHub: React.FC<WorkspaceHubProps> = ({ issues, currentUser 
                       <select
                         value={selectedSpace}
                         onChange={(e) => setSelectedSpace(e.target.value)}
-                        className="w-full bg-[#121212] border border-white/10 px-3 py-2 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-amber-500 text-xs"
+                        className="w-full glass-panel px-3 py-2 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-amber-500 text-xs"
                       >
                         {chatSpaces.length === 0 ? (
                           <option value="">Civic Notification Channel (Default)</option>
@@ -868,7 +868,7 @@ export const WorkspaceHub: React.FC<WorkspaceHubProps> = ({ issues, currentUser 
                             setChatCustomMessage('');
                           }
                         }}
-                        className="w-full bg-[#121212] border border-white/10 px-3 py-2 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-amber-500 text-xs text-slate-300"
+                        className="w-full glass-panel px-3 py-2 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-amber-500 text-xs text-slate-300"
                       >
                         <option value="">-- Choose issue to compose alert --</option>
                         {issues.map(issue => (
@@ -886,7 +886,7 @@ export const WorkspaceHub: React.FC<WorkspaceHubProps> = ({ issues, currentUser 
                         onChange={(e) => setChatCustomMessage(e.target.value)}
                         placeholder="Write dynamic message content or select an issue to autofill..."
                         rows={4}
-                        className="w-full bg-[#121212] border border-white/10 px-3 py-2 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-amber-500 text-xs"
+                        className="w-full glass-panel px-3 py-2 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-amber-500 text-xs"
                         required
                       />
                     </div>
@@ -908,7 +908,7 @@ export const WorkspaceHub: React.FC<WorkspaceHubProps> = ({ issues, currentUser 
                 </div>
 
                 {/* Explanatory Space Column */}
-                <div className="lg:col-span-6 bg-[#121212]/30 border border-white/5 rounded-xl p-5 flex flex-col justify-between">
+                <div className="lg:col-span-6 glass-panel/30 border border-white/5 rounded-xl p-5 flex flex-col justify-between">
                   <div className="space-y-4">
                     <h4 className="text-xs font-bold text-amber-500 uppercase tracking-widest font-mono">Real-time Civic Alerts</h4>
                     <p className="text-xs text-slate-300 leading-relaxed">
@@ -949,7 +949,7 @@ export const WorkspaceHub: React.FC<WorkspaceHubProps> = ({ issues, currentUser 
                         value={noteTitle}
                         onChange={(e) => setNoteTitle(e.target.value)}
                         placeholder="e.g., Waste Materials Needed"
-                        className="w-full bg-[#121212] border border-white/10 px-3 py-2 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-amber-500 text-xs"
+                        className="w-full glass-panel px-3 py-2 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-amber-500 text-xs"
                         required
                       />
                     </div>
@@ -961,7 +961,7 @@ export const WorkspaceHub: React.FC<WorkspaceHubProps> = ({ issues, currentUser 
                         onChange={(e) => setNoteContent(e.target.value)}
                         placeholder="Detail observations, tool lists, coordinate checklists..."
                         rows={5}
-                        className="w-full bg-[#121212] border border-white/10 px-3 py-2 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-amber-500 text-xs"
+                        className="w-full glass-panel px-3 py-2 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-amber-500 text-xs"
                         required
                       />
                     </div>

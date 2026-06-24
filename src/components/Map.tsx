@@ -83,15 +83,15 @@ export default function Map({ issues, selectedIssueId, onSelectIssue, onMapClick
   };
 
   return (
-    <div className="relative bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden shadow-xl aspect-[1.6] md:aspect-auto md:h-[550px]">
+    <div className="relative glass-panel rounded-2xl overflow-hidden shadow-2xl aspect-[1.6] md:aspect-auto md:h-[550px]">
       {/* Map Header Overlay */}
-      <div className="absolute top-4 left-4 z-10 bg-black/85 backdrop-blur-md border border-white/5 rounded-lg px-3 py-2 text-xs text-slate-300 pointer-events-none">
+      <div className="absolute top-4 left-4 z-10 glass-panel border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-300 pointer-events-none">
         <div className="font-semibold text-white tracking-wide uppercase">Valencia-Dolores District</div>
         <div className="text-[10px] text-slate-500">Interactive Architectural Grid Map</div>
       </div>
 
       {/* Layer Control Toggle Overlay */}
-      <div className="absolute top-4 right-4 z-10 bg-black/85 backdrop-blur-md border border-white/10 rounded-xl p-1 flex items-center gap-1 shadow-2xl">
+      <div className="absolute top-4 right-4 z-10 glass-panel border border-white/10 rounded-xl p-1 flex items-center gap-1 shadow-2xl">
         <button
           id="layer-btn-streets"
           onClick={() => setActiveLayer('streets')}
@@ -134,7 +134,7 @@ export default function Map({ issues, selectedIssueId, onSelectIssue, onMapClick
       </div>
 
       {/* Guide tooltip */}
-      <div className="absolute bottom-4 right-4 z-10 bg-black/90 border border-white/5 rounded-lg p-2.5 max-w-[200px] text-[11px] text-slate-400">
+      <div className="absolute bottom-4 right-4 z-10 glass-panel border border-white/10 rounded-lg p-2.5 max-w-[200px] text-[11px] text-slate-400">
         <p className="font-medium text-amber-500 mb-1">💡 Interactive Guide</p>
         <p>Click anywhere on the grid streets to place a pin and report an issue at those exact coordinates.</p>
       </div>
@@ -146,7 +146,7 @@ export default function Map({ issues, selectedIssueId, onSelectIssue, onMapClick
         viewBox="0 0 1000 600"
       >
         {/* Background Grid */}
-        <rect id="map-bg" width="1000" height="600" fill="#060606" />
+        <rect id="map-bg" width="1000" height="600" fill="transparent" />
         
         {/* Fine Architectural Gridlines & Heatmap Gradients */}
         <defs>
@@ -427,7 +427,7 @@ export default function Map({ issues, selectedIssueId, onSelectIssue, onMapClick
       </svg>
 
       {/* Live Coordinate Footer Indicator */}
-      <div className="absolute bottom-4 left-4 z-10 bg-black/80 backdrop-blur-md border border-white/5 rounded-lg px-2.5 py-1 text-[10px] text-slate-400 font-mono flex items-center gap-1.5 pointer-events-none">
+      <div className="absolute bottom-4 left-4 z-10 glass-panel border border-white/10 rounded-lg px-2.5 py-1 text-[10px] text-slate-400 font-mono flex items-center gap-1.5 pointer-events-none">
         <Crosshair className="w-3.5 h-3.5 text-slate-500" />
         <span>37.7651° N, 122.4211° W</span>
       </div>
@@ -435,7 +435,7 @@ export default function Map({ issues, selectedIssueId, onSelectIssue, onMapClick
       {/* Hover Info Card Overlay */}
       {hoveredIssue && (
         <div
-          className="absolute bg-black/95 border border-white/10 shadow-2xl rounded-xl p-3 max-w-[240px] pointer-events-none z-20 transition-all duration-150"
+          className="absolute glass-panel border border-white/10 shadow-2xl rounded-xl p-3 max-w-[240px] pointer-events-none z-20 transition-all duration-150"
           style={{
             left: `${Math.min(80, Math.max(5, projectCoords(hoveredIssue.latitude, hoveredIssue.longitude).x))}%`,
             top: `${Math.min(75, Math.max(5, projectCoords(hoveredIssue.latitude, hoveredIssue.longitude).y - 28))}%`
@@ -461,7 +461,7 @@ export default function Map({ issues, selectedIssueId, onSelectIssue, onMapClick
 
       {/* Floating coordinates confirmation container */}
       {clickCoord && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#121212] border border-white/10 p-4 rounded-xl shadow-2xl z-20 text-center max-w-[280px]">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 glass-panel p-4 rounded-xl shadow-2xl z-20 text-center max-w-[280px]">
           <MapPin className="w-8 h-8 text-amber-500 mx-auto mb-2" />
           <h4 className="text-sm font-semibold text-white mb-1">Set Pin Coordinates</h4>
           <p className="text-xs text-slate-400 font-mono mb-3">
