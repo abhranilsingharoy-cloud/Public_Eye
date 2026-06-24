@@ -1,0 +1,533 @@
+import React, { useState } from 'react';
+import { Issue, Comment, VerificationLog, IssueStatus } from '../types';
+import { motion, AnimatePresence } from 'motion/react';
+import {
+  ThumbsUp,
+  MessageSquare,
+  Shield,
+  Activity,
+  AlertTriangle,
+  User,
+  Calendar,
+  Sparkles,
+  MapPin,
+  CheckCircle,
+  HelpCircle,
+  Clock,
+  ArrowRight,
+  Send,
+  Wrench,
+  Check,
+  Share2
+} from 'lucide-react';
+
+interface IssueDetailProps {
+  issue: Issue;
+  currentUser: string;
+  onVote: (issueId: string) => void;
+  onAddComment: (issueId: string, text: string) => void;
+  onVerify: (issueId: string, type: 'verify' | 'dispute', notes: string) => void;
+  onUpdateStatus: (issueId: string, status: IssueStatus, notes?: string) => void;
+}
+
+export default function IssueDetail({
+  issue,
+  currentUser,
+  onVote,
+  onAddComment,
+  onVerify,
+  onUpdateStatus
+}: IssueDetailProps) {
+  const [commentText, setCommentText] = useState('');
+  const [verifyNotes, setVerifyNotes] = useState('');
+  const [showVerifyForm, setShowVerifyForm] = useState(false);
+  const [showResolveForm, setShowResolveForm] = useState(false);
+  const [resolveNotes, setResolveNotes] = useState('');
+  const [shareFeedback, setShareFeedback] = useState<string | null>(null);
+
+  const handleShare = async () => {
+    const shareData = {
+      title: `Community Hero: ${issue.title}`,
+      text: `🚨 [Valencia-Dolores] Help audit: "${issue.title}"\nCategory: ${issue.category.replace('_', ' ')}\nStatus: ${issue.status.toUpperCase()}\nLocation: Lat ${issue.latitude.toFixed(5)}, Lng ${issue.longitude.toFixed(5)}\n\n"${issue.description}"`,
+      url: window.location.href
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        setShareFeedback('Shared successfully!');
+        setTimeout(() => setShareFeedback(null), 3000);
+      } catch (err) {
+        console.error('Web Share failed, falling back:', err);
+        if ((err as Error).name !== 'AbortError') {
+          fallbackCopyToClipboard(shareData);
+        }
+      }
+    } else {
+      fallbackCopyToClipboard(shareData);
+    }
+  };
+
+  const fallbackCopyToClipboard = async (data: { title: string; text: string; url: string }) => {
+    const fullText = `${data.title}\n${data.text}\nView here: ${data.url}`;
+    try {
+      await navigator.clipboard.writeText(fullText);
+      setShareFeedback('Details copied to clipboard!');
+      setTimeout(() => setShareFeedback(null), 3000);
+    } catch (err) {
+      console.error('Clipboard copy failed:', err);
+      setShareFeedback('Failed to share or copy.');
+      setTimeout(() => setShareFeedback(null), 3000);
+    }
+  };
+
+  const handleCommentSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+    onAddComment(issue.id, commentText.trim());
+    setCommentText('');
+  };
+
+  const handleVerifySubmit = (e: React.FormEvent, type: 'verify' | 'dispute') => {
+    e.preventDefault();
+    onVerify(issue.id, type, verifyNotes.trim() || `${type === 'verify' ? 'Verified' : 'Disputed'} by citizen.`);
+    setVerifyNotes('');
+    setShowVerifyForm(false);
+  };
+
+  const handleResolveSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onUpdateStatus(issue.id, 'resolved', resolveNotes.trim() || 'Resolved by community & public coordination.');
+    setResolveNotes('');
+    setShowResolveForm(false);
+  };
+
+  const hasVoted = issue.votedUsers?.includes(currentUser);
+
+  const getStatusDetails = (status: string) => {
+    switch (status) {
+      case 'reported':
+        return { label: 'Reported', color: 'bg-red-500/10 text-red-400 border-red-500/20', desc: 'Newly submitted by citizen' };
+      case 'verified':
+        return { label: 'Verified', color: 'bg-amber-500/10 text-amber-400 border-amber-500/20', desc: 'Confirmed by neighborhood logs' };
+      case 'in_progress':
+        return { label: 'In Progress', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', desc: 'Dispatched to municipal crew' };
+      case 'resolved':
+        return { label: 'Resolved', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', desc: 'Issue resolved & verified' };
+      default:
+        return { label: 'Reported', color: 'bg-white/5 text-slate-300 border-white/5', desc: '' };
+    }
+  };
+
+  const getSeverityBadge = (lvl: string) => {
+    switch (lvl) {
+      case 'high':
+        return <span className="bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Critical</span>;
+      case 'medium':
+        return <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Moderate</span>;
+      default:
+        return <span className="bg-white/5 text-slate-300 border border-white/5 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Standard</span>;
+    }
+  };
+
+  const steps: { status: IssueStatus; label: string }[] = [
+    { status: 'reported', label: 'Reported' },
+    { status: 'verified', label: 'Verified' },
+    { status: 'in_progress', label: 'In Progress' },
+    { status: 'resolved', label: 'Resolved' }
+  ];
+
+  const getStageTimestamp = (status: IssueStatus): string | null => {
+    if (issue.statusHistory) {
+      const entry = issue.statusHistory.find(h => h.status === status);
+      if (entry) return entry.timestamp;
+    }
+
+    if (status === 'reported') return issue.createdAt;
+    if (status === 'verified') {
+      if (issue.verifiedAt) return issue.verifiedAt;
+      const ver = issue.verifications?.find(v => v.type === 'verify');
+      if (ver) return ver.createdAt;
+      
+      const currentIdx = steps.findIndex(s => s.status === issue.status);
+      const targetIdx = steps.findIndex(s => s.status === 'verified');
+      if (currentIdx >= targetIdx) {
+        return issue.updatedAt || issue.createdAt;
+      }
+    }
+    if (status === 'in_progress') {
+      if (issue.inProgressAt) return issue.inProgressAt;
+      const currentIdx = steps.findIndex(s => s.status === issue.status);
+      const targetIdx = steps.findIndex(s => s.status === 'in_progress');
+      if (currentIdx >= targetIdx) {
+        return issue.updatedAt || issue.createdAt;
+      }
+    }
+    if (status === 'resolved') {
+      return issue.resolvedAt || null;
+    }
+    return null;
+  };
+
+  const formatStepTime = (isoString: string) => {
+    try {
+      const date = new Date(isoString);
+      const formattedDate = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      const formattedTime = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
+      return `${formattedDate} ${formattedTime}`;
+    } catch (e) {
+      return '';
+    }
+  };
+
+  const currentStepIdx = steps.findIndex(s => s.status === issue.status);
+
+  return (
+    <div className="bg-white/[0.02] border border-white/5 rounded-2xl shadow-2xl overflow-hidden flex flex-col h-full">
+      {/* Detail Header */}
+      <div className="p-6 border-b border-white/5 bg-white/[0.01]">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <span className="text-[11px] font-semibold text-amber-500 uppercase tracking-widest bg-amber-500/10 border border-amber-500/20 rounded-md px-2.5 py-1">
+            {issue.category.replace('_', ' ')}
+          </span>
+          <div className="flex items-center gap-1.5">
+            {getSeverityBadge(issue.aiSeverity)}
+            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${getStatusDetails(issue.status).color}`}>
+              {getStatusDetails(issue.status).label}
+            </span>
+          </div>
+        </div>
+
+        <h3 className="text-xl font-bold text-white leading-snug mb-2">{issue.title}</h3>
+        <div className="flex items-center justify-between gap-4 text-xs text-slate-400 font-mono relative">
+          <div className="flex items-center gap-4">
+            <span className="flex items-center gap-1"><User className="w-3.5 h-3.5 text-slate-500" /> {issue.reporter.split('@')[0]}</span>
+            <span className="flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5 text-slate-500" /> {new Date(issue.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+
+          <div className="relative flex items-center gap-2">
+            <AnimatePresence>
+              {shareFeedback && (
+                <motion.span
+                  initial={{ opacity: 0, scale: 0.9, y: 5 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 5 }}
+                  className="absolute bottom-full right-0 mb-2 whitespace-nowrap bg-amber-500 text-black text-[10px] font-bold px-2 py-1 rounded shadow-lg font-mono z-50"
+                >
+                  {shareFeedback}
+                </motion.span>
+              )}
+            </AnimatePresence>
+
+            <button
+              id="btn-share-issue"
+              onClick={handleShare}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/5 hover:border-amber-500/20 cursor-pointer transition-all active:scale-95"
+              title="Share report and coordinates"
+            >
+              <Share2 className="w-3.5 h-3.5 text-amber-500" />
+              <span>Share</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main content body (scrollable) */}
+      <div className="p-6 flex-1 overflow-y-auto space-y-6">
+        {/* Description */}
+        <div>
+          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 font-mono">Citizen Report Details</h4>
+          <p className="text-sm text-slate-300 leading-relaxed bg-white/[0.02] border border-white/5 p-4 rounded-xl">{issue.description}</p>
+        </div>
+
+        {/* Status Tracker Timeline */}
+        <div>
+          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3.5 font-mono">Lifecycle Tracking</h4>
+          <div className="relative flex items-center justify-between">
+            {/* Background line */}
+            <div className="absolute left-[10%] right-[10%] top-[16px] h-0.5 bg-white/5 -z-10" />
+            <div
+              className="absolute left-[10%] top-[16px] h-0.5 bg-amber-500 -z-10 transition-all duration-300"
+              style={{ width: `${(currentStepIdx / (steps.length - 1)) * 80}%` }}
+            />
+
+            {steps.map((step, idx) => {
+              const isPast = idx < currentStepIdx;
+              const isCurrent = idx === currentStepIdx;
+              const isUpcoming = idx > currentStepIdx;
+              const timestamp = getStageTimestamp(step.status);
+
+              return (
+                <div key={step.status} className="flex flex-col items-center flex-1 z-10">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border transition-all duration-300 ${
+                      isPast
+                        ? 'bg-amber-500 border-amber-500 text-black shadow-md'
+                        : isCurrent
+                        ? 'bg-black border-amber-500 text-amber-500 ring-4 ring-amber-500/15 font-black'
+                        : 'bg-white/[0.02] border-white/5 text-slate-500'
+                    }`}
+                  >
+                    {isPast ? <Check className="w-4 h-4 stroke-[3]" /> : idx + 1}
+                  </div>
+                  <span className={`text-[10px] font-semibold mt-1.5 font-mono ${isCurrent ? 'text-amber-500 font-bold' : isPast ? 'text-slate-200' : 'text-slate-500'}`}>
+                    {step.label}
+                  </span>
+                  {timestamp ? (
+                    <span className="text-[9px] text-slate-400 mt-0.5 font-mono tracking-tighter text-center whitespace-nowrap">
+                      {formatStepTime(timestamp)}
+                    </span>
+                  ) : (
+                    <span className="text-[9px] text-slate-600 mt-0.5 font-mono tracking-tighter text-center whitespace-nowrap">
+                      Pending
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Quick resolution note display */}
+          {issue.status === 'resolved' && issue.resolutionNotes && (
+            <div className="mt-4 bg-emerald-500/10 border border-emerald-500/20 p-3.5 rounded-xl text-xs text-emerald-400">
+              <span className="font-bold text-emerald-200 block mb-1">✅ RESOLUTION LOG:</span>
+              <p className="italic leading-relaxed">"{issue.resolutionNotes}"</p>
+              {issue.resolvedAt && (
+                <span className="block mt-2 font-mono text-[9px] text-emerald-500">
+                  Closed at: {new Date(issue.resolvedAt).toLocaleString()}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* AI Coprocessor Insight Box */}
+        <div className="bg-black/40 text-slate-200 border border-white/5 p-5 rounded-xl relative overflow-hidden shadow-lg">
+          <div className="absolute top-0 right-0 bg-amber-500 text-[9px] font-bold tracking-widest text-black px-2.5 py-1 rounded-bl-lg flex items-center gap-1 font-mono uppercase">
+            <Sparkles className="w-3 h-3 fill-black" /> AI Co-Processor
+          </div>
+
+          <div className="flex items-center gap-2 mb-3">
+            <Activity className="w-4 h-4 text-amber-500" />
+            <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500 font-mono">Hyperlocal Evaluation Analysis</h4>
+          </div>
+
+          <div className="space-y-3.5 text-xs">
+            <div>
+              <span className="text-amber-400 font-bold block mb-0.5">⚠️ Citizens Preventive Safety Tip</span>
+              <p className="text-slate-300 leading-relaxed italic">"{issue.aiSafetyTips || 'Maintain a safe corridor from active hazard lanes.'}"</p>
+            </div>
+
+            <div className="border-t border-white/5 pt-3">
+              <span className="text-amber-400 font-bold block mb-0.5">🛠️ Municipal Work Order Proposal</span>
+              <p className="text-slate-300 leading-relaxed">{issue.aiSuggestedAction || 'Dispatch road inspection or light maintenance crew.'}</p>
+            </div>
+
+            {issue.aiTags && issue.aiTags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1.5">
+                {issue.aiTags.map((tag, i) => (
+                  <span key={i} className="bg-white/5 text-[10px] text-slate-300 border border-white/5 rounded-md px-2 py-0.5 font-mono">
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Verifications Log list */}
+        <div>
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider font-mono">Neighborhood Auditing & Verifications</h4>
+            <span className="text-[10px] bg-white/5 text-slate-400 border border-white/5 px-2 py-0.5 rounded font-mono font-medium">
+              Score: {issue.upvotes} Verification Votes
+            </span>
+          </div>
+
+          <div className="space-y-2 max-h-[160px] overflow-y-auto mb-3">
+            {issue.verifications && issue.verifications.length > 0 ? (
+              issue.verifications.map((v) => (
+                <div key={v.id} className="bg-white/[0.02] border border-white/5 p-2.5 rounded-lg text-xs flex items-start gap-2.5">
+                  <Shield className={`w-4 h-4 mt-0.5 shrink-0 ${v.type === 'verify' ? 'text-amber-500' : 'text-red-500'}`} />
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-slate-200 font-mono">{v.user.split('@')[0]}</span>
+                      <span className={`text-[9px] font-bold uppercase rounded px-1 ${v.type === 'verify' ? 'bg-amber-500/10 text-amber-400' : 'bg-red-500/10 text-red-400'}`}>
+                        {v.type === 'verify' ? 'Verified' : 'Disputed'}
+                      </span>
+                    </div>
+                    <p className="text-slate-300 mt-0.5">{v.notes}</p>
+                    <span className="text-[9px] text-slate-500 font-mono mt-1 block">{new Date(v.createdAt).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-4 bg-white/[0.01] border border-dashed border-white/5 rounded-xl text-xs text-slate-500">
+                No formal neighborhood auditing logs yet. Be the first to verify or dispute this report!
+              </div>
+            )}
+          </div>
+
+          {/* Action buttons bar */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => onVote(issue.id)}
+              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border transition-all cursor-pointer ${
+                hasVoted
+                  ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
+                  : 'bg-white/5 hover:bg-white/10 border-white/5 text-slate-300'
+              }`}
+            >
+              <ThumbsUp className={`w-4 h-4 ${hasVoted ? 'fill-amber-500 stroke-amber-500' : ''}`} />
+              {hasVoted ? 'Voted' : 'Upvote / Verify'}
+            </button>
+
+            <button
+              onClick={() => setShowVerifyForm(!showVerifyForm)}
+              className="bg-white/5 hover:bg-white/10 border border-white/5 text-slate-300 text-xs font-semibold px-3 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer"
+            >
+              <Shield className="w-4 h-4 text-amber-500" />
+              Audit Report
+            </button>
+
+            {issue.status !== 'resolved' && (
+              <>
+                {issue.status !== 'in_progress' ? (
+                  <button
+                    onClick={() => onUpdateStatus(issue.id, 'in_progress')}
+                    className="bg-amber-500 hover:bg-amber-600 text-black text-xs font-semibold px-3 py-2 rounded-xl flex items-center gap-1.5 ml-auto cursor-pointer"
+                  >
+                    <Wrench className="w-3.5 h-3.5 text-black" /> Work In-Progress
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowResolveForm(!showResolveForm)}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-2 rounded-xl flex items-center gap-1.5 ml-auto cursor-pointer"
+                  >
+                    <CheckCircle className="w-3.5 h-3.5" /> Resolve Issue
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Collapsible Verify Auditing form */}
+          {showVerifyForm && (
+            <motion.form
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              onSubmit={(e) => handleVerifySubmit(e, 'verify')}
+              className="mt-3 bg-white/[0.02] border border-white/5 rounded-xl p-3"
+            >
+              <label className="block text-xs font-bold text-slate-300 mb-1.5 font-mono">Formal Verification Log</label>
+              <textarea
+                value={verifyNotes}
+                onChange={(e) => setVerifyNotes(e.target.value)}
+                placeholder="Write specific auditing observation notes... (e.g., 'Inspected on foot. Pothole is active and blocking traffic')"
+                className="w-full bg-black/40 border border-white/5 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 text-slate-200 placeholder-slate-500 resize-none h-16"
+              />
+              <div className="flex items-center gap-1.5 mt-2 justify-end">
+                <button
+                  type="submit"
+                  className="bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs px-2.5 py-1.5 rounded-md cursor-pointer"
+                >
+                  Verify Active
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => handleVerifySubmit(e, 'dispute')}
+                  className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 text-xs px-2.5 py-1.5 rounded-md cursor-pointer"
+                >
+                  Flag as Dispute
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowVerifyForm(false)}
+                  className="bg-white/5 hover:bg-white/10 text-slate-300 text-xs px-2.5 py-1.5 rounded-md cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.form>
+          )}
+
+          {/* Collapsible Resolution form */}
+          {showResolveForm && (
+            <motion.form
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              onSubmit={handleResolveSubmit}
+              className="mt-3 bg-emerald-950/20 border border-emerald-500/25 rounded-xl p-3"
+            >
+              <label className="block text-xs font-bold text-emerald-300 mb-1.5 font-mono">Closing Resolution Action Notes</label>
+              <textarea
+                value={resolveNotes}
+                onChange={(e) => setResolveNotes(e.target.value)}
+                placeholder="Write specific resolution details... (e.g., 'Asphalt patching is complete. Debris swept.')"
+                className="w-full bg-black/40 border border-white/5 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-200 placeholder-slate-500 resize-none h-16"
+                required
+              />
+              <div className="flex items-center gap-1.5 mt-2 justify-end">
+                <button
+                  type="submit"
+                  className="bg-emerald-500 hover:bg-emerald-600 text-black font-bold text-xs px-3 py-1.5 rounded-md cursor-pointer"
+                >
+                  Confirm Resolution
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowResolveForm(false)}
+                  className="bg-white/5 hover:bg-white/10 text-slate-300 text-xs px-3 py-1.5 rounded-md cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.form>
+          )}
+        </div>
+
+        {/* Conversation Thread */}
+        <div>
+          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2.5 font-mono">District Discussion Board</h4>
+          <div className="space-y-3 mb-4 max-h-[220px] overflow-y-auto pr-1">
+            {issue.comments && issue.comments.length > 0 ? (
+              issue.comments.map((comment) => (
+                <div key={comment.id} className="bg-white/[0.01] border border-white/5 rounded-xl p-3 text-xs leading-relaxed">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-bold text-amber-500 font-mono">{comment.author.split('@')[0]}</span>
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      {new Date(comment.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <p className="text-slate-300 font-normal">{comment.text}</p>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-4 text-slate-500 text-xs">
+                No discussion entries yet. Start the conversation with local neighbors!
+              </div>
+            )}
+          </div>
+
+          <form onSubmit={handleCommentSubmit} className="flex gap-2">
+            <input
+              type="text"
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="Join conversation or supply field updates..."
+              className="flex-1 bg-white/5 border border-white/5 text-xs px-3 py-2.5 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-500 text-slate-200 placeholder-slate-500"
+            />
+            <button
+              type="submit"
+              className="bg-amber-500 hover:bg-amber-600 text-black px-3 py-2 rounded-xl flex items-center justify-center cursor-pointer transition-colors"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}

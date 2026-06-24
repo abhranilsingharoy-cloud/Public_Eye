@@ -1,0 +1,6 @@
+{
+  "name": "Community Hero",
+  "description": "An interactive hyperlocal community platform that empowers citizens to identify, report, validate, and resolve local infrastructure and public issues with AI-powered categorization and predictive hotspot insights.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
