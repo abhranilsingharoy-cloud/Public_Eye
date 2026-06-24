@@ -10,9 +10,11 @@ import {
   Clock,
   Layers,
   Flame,
-  ShieldAlert
+  ShieldAlert,
+  Building,
+  HeartHandshake
 } from 'lucide-react';
-import { APIProvider, Map as GoogleMap, AdvancedMarker, Pin as GooglePin, useMap } from '@vis.gl/react-google-maps';
+import { APIProvider, Map as GoogleMap, AdvancedMarker, Pin as GooglePin, useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
 
 const API_KEY =
   process.env.GOOGLE_MAPS_PLATFORM_KEY ||
@@ -48,6 +50,87 @@ function MapClickHandler({ setClickCoord }: { setClickCoord: (coord: {lat: numbe
     return () => google.maps.event.removeListener(listener);
   }, [map, setClickCoord]);
   return null;
+}
+
+// Subcomponent to detect and render nearby facilities (NGOs and Govt)
+function FacilitiesLayer() {
+  const map = useMap();
+  const placesLib = useMapsLibrary('places');
+  const [facilities, setFacilities] = useState<google.maps.places.PlaceResult[]>([]);
+  const [hoveredFacility, setHoveredFacility] = useState<google.maps.places.PlaceResult | null>(null);
+
+  useEffect(() => {
+    if (!placesLib || !map) return;
+    const service = new placesLib.PlacesService(map);
+    
+    // Search for Local Government Offices
+    service.nearbySearch({
+      location: map.getCenter() || { lat: 37.765, lng: -122.421 },
+      radius: 2000,
+      type: 'local_government_office'
+    }, (results, status) => {
+      if (status === placesLib.PlacesServiceStatus.OK && results) {
+        setFacilities(prev => [...prev, ...results.map(r => ({...r, facilityType: 'govt'}))]);
+      }
+    });
+
+    // Search for NGOs
+    service.nearbySearch({
+      location: map.getCenter() || { lat: 37.765, lng: -122.421 },
+      radius: 2000,
+      keyword: 'non profit organization ngo'
+    }, (results, status) => {
+      if (status === placesLib.PlacesServiceStatus.OK && results) {
+        setFacilities(prev => [...prev, ...results.map(r => ({...r, facilityType: 'ngo'}))]);
+      }
+    });
+  }, [placesLib, map]);
+
+  // Remove duplicates based on place_id
+  const uniqueFacilities = Array.from(new Map(facilities.map(f => [f.place_id, f])).values());
+
+  return (
+    <>
+      {uniqueFacilities.map((facility) => {
+        if (!facility.geometry?.location) return null;
+        const isGovt = (facility as any).facilityType === 'govt';
+        const color = isGovt ? '#64748b' : '#ec4899'; // Slate for Govt, Pink for NGO
+        const Icon = isGovt ? Building : HeartHandshake;
+
+        return (
+          <AdvancedMarker
+            key={facility.place_id}
+            position={{ lat: facility.geometry.location.lat(), lng: facility.geometry.location.lng() }}
+            onMouseEnter={() => setHoveredFacility(facility)}
+            onMouseLeave={() => setHoveredFacility(null)}
+            zIndex={2}
+            title={facility.name}
+          >
+            <div className="relative cursor-pointer transition-transform hover:scale-110 flex flex-col items-center">
+              <div className="bg-white/10 backdrop-blur-sm p-1 rounded-full border border-white/20 shadow-lg">
+                <Icon className="w-4 h-4" style={{ color }} />
+              </div>
+            </div>
+          </AdvancedMarker>
+        );
+      })}
+
+      {hoveredFacility && hoveredFacility.geometry?.location && (
+        <div className="absolute bg-black/95 border border-white/10 shadow-2xl rounded-xl p-3 max-w-[240px] pointer-events-none z-20 transition-all duration-150 top-4 left-1/2 -translate-x-1/2">
+          <div className="flex items-start justify-between gap-2 mb-1.5">
+            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider bg-white/5 border border-white/5 rounded-full px-2 py-0.5">
+              {(hoveredFacility as any).facilityType === 'govt' ? 'Govt Office' : 'NGO / Non-Profit'}
+            </span>
+            <span className="flex items-center gap-1 text-[9px] text-emerald-400 capitalize">
+              <CheckCircle className="w-3 h-3" /> Verified
+            </span>
+          </div>
+          <h4 className="font-semibold text-xs text-white line-clamp-1 mb-1">{hoveredFacility.name}</h4>
+          <p className="text-[10px] text-slate-400 line-clamp-2 leading-relaxed mb-1.5">{hoveredFacility.vicinity}</p>
+        </div>
+      )}
+    </>
+  );
 }
 
 export default function Map({ issues, selectedIssueId, onSelectIssue, onMapClickToReport }: MapProps) {
@@ -131,6 +214,8 @@ export default function Map({ issues, selectedIssueId, onSelectIssue, onMapClick
           disableDefaultUI={true}
         >
           <MapClickHandler setClickCoord={setClickCoord} />
+          
+          <FacilitiesLayer />
 
           {/* User Location Marker */}
           {userLocation && (

@@ -35,22 +35,34 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "WebApplication",
-        "name": "PublicEye",
-        "url": "https://public-eye.local",
-        "description": "A hyperlocal community platform that empowers citizens to identify, report, and audit public infrastructure issues using AI severity analysis and predictive diagnostic trends.",
-        "applicationCategory": "CivicTechApplication",
-        "operatingSystem": "All",
-        "author": {
-          "@type": "Organization",
-          "name": "PublicEye Citizen Alliance"
-        },
-        "featureList": [
-          "Interactive Neighborhood Issue Mapping",
-          "AI-Powered Infrastructure Severity Analysis",
-          "Predictive Incident Hotspot Trends",
-          "Google Workspace Syncing (Calendar Audits, Feedback Forms, Chat Broadcasts, Keep Note Staging)",
-          "Civic Points Leaderboard and Gamified Achievements"
+        "@graph": [
+          {
+            "@type": "WebApplication",
+            "name": "PublicEye",
+            "url": "https://public-eye.local",
+            "description": "A hyperlocal community platform that empowers citizens to identify, report, and audit public infrastructure issues using AI severity analysis and predictive diagnostic trends.",
+            "applicationCategory": "CivicTechApplication",
+            "operatingSystem": "All",
+            "author": {
+              "@type": "Organization",
+              "name": "PublicEye Citizen Alliance"
+            },
+            "featureList": [
+              "Interactive Neighborhood Issue Mapping",
+              "AI-Powered Infrastructure Severity Analysis",
+              "Predictive Incident Hotspot Trends",
+              "Local NGO & Government Facility Discovery",
+              "Google Workspace Syncing (Calendar Audits, Feedback Forms, Chat Broadcasts, Keep Note Staging)",
+              "Civic Points Leaderboard and Gamified Achievements"
+            ]
+          },
+          {
+            "@type": "NGO",
+            "name": "PublicEye Citizen Alliance",
+            "url": "https://public-eye.local",
+            "description": "Connecting citizens with local government facilities and NGOs to resolve neighborhood infrastructure issues.",
+            "areaServed": "San Francisco, CA"
+          }
         ]
       }
     </script>
