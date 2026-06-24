@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import { APIProvider, Map as GoogleMap, AdvancedMarker, Pin as GooglePin, useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
 
+import { HeatmapLayer } from './HeatmapLayer';
+
 const API_KEY =
   process.env.GOOGLE_MAPS_PLATFORM_KEY ||
   (import.meta as any).env?.VITE_GOOGLE_MAPS_PLATFORM_KEY ||
@@ -139,6 +141,36 @@ export default function Map({ issues, selectedIssueId, onSelectIssue, onMapClick
   const [activeLayer, setActiveLayer] = useState<'streets' | 'heatmap' | 'hazards'>('streets');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
+  const getDistanceInMeters = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371e3;
+    const phi1 = (lat1 * Math.PI) / 180;
+    const phi2 = (lat2 * Math.PI) / 180;
+    const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+    const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a =
+      Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+      Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
+  };
+
+  let activeInRadius = 0;
+  let resolvedInRadius = 0;
+  if (clickCoord) {
+    issues.forEach((issue) => {
+      const distance = getDistanceInMeters(clickCoord.lat, clickCoord.lng, issue.latitude, issue.longitude);
+      if (distance <= 500) {
+        if (issue.status === 'resolved') {
+          resolvedInRadius++;
+        } else {
+          activeInRadius++;
+        }
+      }
+    });
+  }
+
   useEffect(() => {
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
@@ -198,6 +230,34 @@ export default function Map({ issues, selectedIssueId, onSelectIssue, onMapClick
         <div className="text-[10px] text-slate-500">Interactive Map View</div>
       </div>
 
+      {/* Layer Control Toggle Overlay */}
+      <div className="absolute top-4 right-4 z-10 bg-black/85 backdrop-blur-md border border-white/10 rounded-xl p-1 flex items-center gap-1 shadow-2xl">
+        <button
+          onClick={() => setActiveLayer('streets')}
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+            activeLayer === 'streets'
+              ? 'bg-amber-500 text-black shadow-md shadow-amber-500/10'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+          }`}
+          title="Standard Street View"
+        >
+          <Layers className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Pins</span>
+        </button>
+        <button
+          onClick={() => setActiveLayer('heatmap')}
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+            activeLayer === 'heatmap'
+              ? 'bg-amber-500 text-black shadow-md shadow-amber-500/10'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+          }`}
+          title="High-Contrast Hotspots Heatmap"
+        >
+          <Flame className={`w-3.5 h-3.5 ${activeLayer === 'heatmap' ? '' : 'text-orange-400'} group-hover:animate-pulse`} />
+          <span className="hidden sm:inline">Heatmap</span>
+        </button>
+      </div>
+
       {/* Guide tooltip */}
       <div className="absolute bottom-4 right-4 z-10 bg-black/90 border border-white/5 rounded-lg p-2.5 max-w-[200px] text-[11px] text-slate-400 pointer-events-none">
         <p className="font-medium text-amber-500 mb-1">💡 Interactive Guide</p>
@@ -216,6 +276,8 @@ export default function Map({ issues, selectedIssueId, onSelectIssue, onMapClick
           <MapClickHandler setClickCoord={setClickCoord} />
           
           <FacilitiesLayer />
+          
+          {activeLayer === 'heatmap' && <HeatmapLayer issues={issues} />}
 
           {/* User Location Marker */}
           {userLocation && (
@@ -228,7 +290,7 @@ export default function Map({ issues, selectedIssueId, onSelectIssue, onMapClick
           )}
 
           {/* Issues Markers */}
-          {issues.map((issue) => {
+          {activeLayer === 'streets' && issues.map((issue) => {
             const isSelected = selectedIssueId === issue.id;
             const pinColor = getCategoryColor(issue.category);
             
@@ -289,6 +351,19 @@ export default function Map({ issues, selectedIssueId, onSelectIssue, onMapClick
           <p className="text-xs text-slate-400 font-mono mb-3">
             {clickCoord.lat.toFixed(4)}° N, {clickCoord.lng.toFixed(4)}° W
           </p>
+
+          <div className="bg-white/5 rounded-lg p-2.5 mb-4 text-left border border-white/10">
+            <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">500m Radius Summary</h5>
+            <div className="flex justify-between items-center text-xs mb-1">
+              <span className="text-slate-300 flex items-center gap-1.5"><AlertCircle className="w-3.5 h-3.5 text-amber-500" /> Active Reports</span>
+              <span className="font-mono text-amber-500 font-bold">{activeInRadius}</span>
+            </div>
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-slate-300 flex items-center gap-1.5"><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> Resolved Issues</span>
+              <span className="font-mono text-emerald-500 font-bold">{resolvedInRadius}</span>
+            </div>
+          </div>
+
           <div className="flex items-center gap-2 justify-center">
             <button
               onClick={() => {
