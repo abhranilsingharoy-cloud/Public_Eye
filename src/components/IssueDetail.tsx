@@ -18,7 +18,8 @@ import {
   Send,
   Wrench,
   Check,
-  Share2
+  Share2,
+  Cpu
 } from 'lucide-react';
 
 interface IssueDetailProps {
@@ -47,7 +48,7 @@ export default function IssueDetail({
 
   const handleShare = async () => {
     const shareData = {
-      title: `Community Hero: ${issue.title}`,
+      title: `PublicEye: ${issue.title}`,
       text: `🚨 [Valencia-Dolores] Help audit: "${issue.title}"\nCategory: ${issue.category.replace('_', ' ')}\nStatus: ${issue.status.toUpperCase()}\nLocation: Lat ${issue.latitude.toFixed(5)}, Lng ${issue.longitude.toFixed(5)}\n\n"${issue.description}"`,
       url: window.location.href
     };
@@ -183,7 +184,7 @@ export default function IssueDetail({
   const currentStepIdx = steps.findIndex(s => s.status === issue.status);
 
   return (
-    <div className="glass-panel border-0 rounded-2xl shadow-2xl overflow-hidden flex flex-col h-full">
+    <div className="bg-white/[0.02] border border-white/5 rounded-2xl shadow-2xl overflow-hidden flex flex-col h-full">
       {/* Detail Header */}
       <div className="p-6 border-b border-white/5 bg-white/[0.01]">
         <div className="flex items-center justify-between gap-3 mb-3">
@@ -199,11 +200,6 @@ export default function IssueDetail({
         </div>
 
         <h3 className="text-xl font-bold text-white leading-snug mb-2">{issue.title}</h3>
-        {issue.address && (
-          <p className="text-xs text-slate-400 mb-3 flex items-center gap-1.5 bg-white/5 p-2 rounded-lg border border-white/5">
-            <MapPin className="w-4 h-4 text-amber-500" /> {issue.address}
-          </p>
-        )}
         <div className="flex items-center justify-between gap-4 text-xs text-slate-400 font-mono relative">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1"><User className="w-3.5 h-3.5 text-slate-500" /> {issue.reporter.split('@')[0]}</span>
@@ -244,12 +240,7 @@ export default function IssueDetail({
         {/* Description */}
         <div>
           <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 font-mono">Citizen Report Details</h4>
-          <p className="text-sm text-slate-300 leading-relaxed glass-panel border-0 p-4 rounded-xl">{issue.description}</p>
-          {issue.imageUrl && (
-            <div className="mt-4 rounded-xl overflow-hidden border border-white/10 shadow-lg bg-black/50">
-              <img src={issue.imageUrl} alt="Reported issue evidence" className="w-full object-cover max-h-64" />
-            </div>
-          )}
+          <p className="text-sm text-slate-300 leading-relaxed bg-white/[0.02] border border-white/5 p-4 rounded-xl">{issue.description}</p>
         </div>
 
         {/* Status Tracker Timeline */}
@@ -347,6 +338,44 @@ export default function IssueDetail({
           </div>
         </div>
 
+        {/* Multi-Agent Trace Log List */}
+        {issue.agentTrace && issue.agentTrace.length > 0 && (
+          <div className="bg-white/[0.02] border border-white/5 p-5 rounded-xl space-y-3">
+            <div className="flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-amber-500" />
+              <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 font-mono">Agentic Execution Trace</h4>
+            </div>
+            
+            <p className="text-[10px] text-slate-500 leading-normal mb-1.5">
+              Review real-time autonomous pipeline transactions recorded for this hyperlocal report:
+            </p>
+
+            <div className="relative border-l border-white/5 pl-4 ml-2.5 space-y-3.5">
+              {issue.agentTrace.map((trace, i) => (
+                <div key={i} className="relative text-xs">
+                  {/* Icon dot */}
+                  <div className={`absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full border ${
+                    trace.status === 'success' 
+                      ? 'bg-emerald-500 border-emerald-400 ring-4 ring-emerald-500/10' 
+                      : trace.status === 'warning'
+                      ? 'bg-amber-500 border-amber-400 ring-4 ring-amber-500/10'
+                      : 'bg-blue-500 border-blue-400 ring-4 ring-blue-500/10'
+                  }`} />
+                  
+                  <div className="flex items-center justify-between gap-1.5 mb-0.5">
+                    <span className="font-bold text-slate-200 font-mono text-[10px]">{trace.agentName}</span>
+                    <span className="text-[9px] text-slate-500 font-mono">{new Date(trace.timestamp).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                  </div>
+                  <p className="text-slate-300 font-medium leading-relaxed">{trace.message}</p>
+                  {trace.details && (
+                    <p className="text-[9px] text-slate-500 leading-normal bg-black/30 border border-white/5 p-2 rounded mt-1 font-mono">{trace.details}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Verifications Log list */}
         <div>
           <div className="flex items-center justify-between gap-2 mb-2">
@@ -359,7 +388,7 @@ export default function IssueDetail({
           <div className="space-y-2 max-h-[160px] overflow-y-auto mb-3">
             {issue.verifications && issue.verifications.length > 0 ? (
               issue.verifications.map((v) => (
-                <div key={v.id} className="glass-panel border-0 p-2.5 rounded-lg text-xs flex items-start gap-2.5">
+                <div key={v.id} className="bg-white/[0.02] border border-white/5 p-2.5 rounded-lg text-xs flex items-start gap-2.5">
                   <Shield className={`w-4 h-4 mt-0.5 shrink-0 ${v.type === 'verify' ? 'text-amber-500' : 'text-red-500'}`} />
                   <div>
                     <div className="flex items-center gap-1.5">
@@ -429,7 +458,7 @@ export default function IssueDetail({
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               onSubmit={(e) => handleVerifySubmit(e, 'verify')}
-              className="mt-3 glass-panel border-0 rounded-xl p-3"
+              className="mt-3 bg-white/[0.02] border border-white/5 rounded-xl p-3"
             >
               <label className="block text-xs font-bold text-slate-300 mb-1.5 font-mono">Formal Verification Log</label>
               <textarea

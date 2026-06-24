@@ -52,7 +52,7 @@ export default function StatsLeaderboard({ issues = [], currentUser = 'luffyfocu
 
   if (loading) {
     return (
-      <div className="py-20 text-center space-y-2 glass-panel border-0 rounded-2xl shadow-2xl">
+      <div className="py-20 text-center space-y-2 bg-white/[0.02] border border-white/5 rounded-2xl shadow-2xl">
         <RefreshCw className="w-8 h-8 text-amber-500 animate-spin mx-auto" />
         <p className="text-sm font-semibold text-slate-300">Calculating district metrics & citizen scoreboards...</p>
       </div>
@@ -344,7 +344,7 @@ export default function StatsLeaderboard({ issues = [], currentUser = 'luffyfocu
       {/* KPI Bento Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total issues card */}
-        <div className="glass-panel border-0 p-5 rounded-xl shadow-md flex items-center gap-4">
+        <div className="bg-white/[0.02] border border-white/5 p-5 rounded-xl shadow-md flex items-center gap-4">
           <div className="w-11 h-11 rounded-lg bg-white/5 border border-white/5 text-amber-500 flex items-center justify-center font-mono font-bold text-lg">
             {stats.totalIssues}
           </div>
@@ -355,7 +355,7 @@ export default function StatsLeaderboard({ issues = [], currentUser = 'luffyfocu
         </div>
 
         {/* Resolved Card */}
-        <div className="glass-panel border-0 p-5 rounded-xl shadow-md flex items-center gap-4">
+        <div className="bg-white/[0.02] border border-white/5 p-5 rounded-xl shadow-md flex items-center gap-4">
           <div className="w-11 h-11 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
             <CheckCircle className="w-6 h-6" />
           </div>
@@ -366,7 +366,7 @@ export default function StatsLeaderboard({ issues = [], currentUser = 'luffyfocu
         </div>
 
         {/* In Progress Card */}
-        <div className="glass-panel border-0 p-5 rounded-xl shadow-md flex items-center gap-4">
+        <div className="bg-white/[0.02] border border-white/5 p-5 rounded-xl shadow-md flex items-center gap-4">
           <div className="w-11 h-11 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center">
             <Wrench className="w-5 h-5" />
           </div>
@@ -377,7 +377,7 @@ export default function StatsLeaderboard({ issues = [], currentUser = 'luffyfocu
         </div>
 
         {/* Resolution Ratio card */}
-        <div className="glass-panel border-0 p-5 rounded-xl shadow-md flex items-center gap-4">
+        <div className="bg-white/[0.02] border border-white/5 p-5 rounded-xl shadow-md flex items-center gap-4">
           <div className="w-11 h-11 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center font-mono font-black">
             {totalClosedPercentage}%
           </div>
@@ -390,7 +390,7 @@ export default function StatsLeaderboard({ issues = [], currentUser = 'luffyfocu
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Left Side: Category Distribution (2 cols) */}
-        <div className="lg:col-span-2 glass-panel border-0 rounded-2xl p-6 shadow-xl space-y-5">
+        <div className="lg:col-span-2 bg-white/[0.02] border border-white/5 rounded-2xl p-6 shadow-xl space-y-5">
           <div className="border-b border-white/5 pb-3">
             <h3 className="font-bold text-white text-sm font-sans">Active Issue Distribution</h3>
             <p className="text-slate-500 text-[10px] mt-0.5">Statistical tally divided by infrastructure departments.</p>
@@ -420,10 +420,10 @@ export default function StatsLeaderboard({ issues = [], currentUser = 'luffyfocu
         </div>
 
         {/* Right Side: Leaderboard list (3 cols) */}
-        <div className="lg:col-span-3 glass-panel border-0 rounded-2xl p-6 shadow-xl space-y-4">
+        <div className="lg:col-span-3 bg-white/[0.02] border border-white/5 rounded-2xl p-6 shadow-xl space-y-4">
           <div className="border-b border-white/5 pb-3 flex items-center justify-between gap-2">
             <div>
-              <h3 className="font-bold text-white text-sm font-sans">District Community Heroes</h3>
+              <h3 className="font-bold text-white text-sm font-sans">District PublicEyes</h3>
               <p className="text-slate-500 text-[10px] mt-0.5">Top-contributing citizens based on verified reports and formal neighborhood audits.</p>
             </div>
             <Trophy className="w-5 h-5 text-amber-500" />

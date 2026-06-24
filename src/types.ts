@@ -22,6 +22,14 @@ export interface StatusTransition {
   timestamp: string;
 }
 
+export interface AgentTraceStep {
+  agentName: string;
+  status: 'success' | 'warning' | 'info';
+  timestamp: string;
+  message: string;
+  details?: string;
+}
+
 export interface Issue {
   id: string;
   title: string;
@@ -30,7 +38,6 @@ export interface Issue {
   status: IssueStatus;
   latitude: number;
   longitude: number;
-  address?: string;
   reporter: string;
   upvotes: number;
   votedUsers: string[];
@@ -50,6 +57,7 @@ export interface Issue {
   verifiedAt?: string;
   inProgressAt?: string;
   statusHistory?: StatusTransition[];
+  agentTrace?: AgentTraceStep[];
 }
 
 export interface LeaderboardUser {

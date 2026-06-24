@@ -64,7 +64,7 @@ const CATEGORY_CHART_COLORS = [
 const CustomChartTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="glass-panel p-3 rounded-xl shadow-2xl font-mono text-[11px] space-y-1.5">
+      <div className="bg-[#0c0c0e]/95 backdrop-blur-md border border-white/10 p-3 rounded-xl shadow-2xl font-mono text-[11px] space-y-1.5">
         <p className="font-bold text-amber-500 border-b border-white/5 pb-1 flex items-center justify-between gap-4">
           <span>{label} Timeline</span>
           <span className="text-[9px] text-slate-500 font-normal">district audit</span>
@@ -152,7 +152,7 @@ export default function PredictiveReport() {
 
       {/* Sandbox/Live Key banner */}
       {data && data.warning && (
-        <div className="glass-panel border-0 rounded-xl p-4 text-xs text-slate-300 flex items-center gap-3.5 shadow-md">
+        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 text-xs text-slate-300 flex items-center gap-3.5 shadow-md">
           <Sparkles className="w-5 h-5 text-amber-500 shrink-0 animate-pulse" />
           <div className="flex-1">
             <span className="font-bold text-white uppercase block">AI Sandbox Mode active</span>
@@ -164,7 +164,7 @@ export default function PredictiveReport() {
       )}
 
       {loading ? (
-        <div className="py-20 text-center space-y-3 glass-panel border-0 rounded-2xl shadow-2xl">
+        <div className="py-20 text-center space-y-3 bg-white/[0.02] border border-white/5 rounded-2xl shadow-2xl">
           <RefreshCw className="w-10 h-10 text-amber-500 animate-spin mx-auto" />
           <p className="text-sm font-semibold text-slate-200">Feeding spatial data into Gemini model...</p>
           <p className="text-xs text-slate-500">Analyzing street reports, verification logs, and neighborhood density maps.</p>
@@ -186,7 +186,7 @@ export default function PredictiveReport() {
           {/* Left/Main Column - Active Hotspots & Forecasts */}
           <div className="lg:col-span-2 space-y-6">
             {/* 30-Day Historical Trend Chart */}
-            <div className="glass-panel border-0 rounded-2xl p-6 shadow-xl space-y-4">
+            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 shadow-xl space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-3">
                 <div className="flex items-center gap-2">
                   <BarChart3 className="w-5 h-5 text-amber-500" />
@@ -304,7 +304,7 @@ export default function PredictiveReport() {
             </div>
 
             {/* Active Hotspots list */}
-            <div className="glass-panel border-0 rounded-2xl p-6 shadow-xl space-y-4">
+            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 shadow-xl space-y-4">
               <div className="flex items-center gap-2 border-b border-white/5 pb-3">
                 <TrendingUp className="w-5 h-5 text-slate-300" />
                 <h3 className="font-bold text-base text-white">Spatial Vulnerability Hotspots</h3>
@@ -342,7 +342,7 @@ export default function PredictiveReport() {
             </div>
 
             {/* Maintenance Forecast list */}
-            <div className="glass-panel border-0 rounded-2xl p-6 shadow-xl space-y-4">
+            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 shadow-xl space-y-4">
               <div className="flex items-center gap-2 border-b border-white/5 pb-3">
                 <Shield className="w-5 h-5 text-slate-300" />
                 <h3 className="font-bold text-base text-white">System Failure Horizon (Proactive Schedule)</h3>
@@ -372,7 +372,7 @@ export default function PredictiveReport() {
           </div>
 
           {/* Right Column - Recommendations */}
-          <div className="glass-panel border-0 rounded-2xl p-6 shadow-xl space-y-5 h-fit">
+          <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 shadow-xl space-y-5 h-fit">
             <div className="border-b border-white/5 pb-3">
               <h3 className="font-bold text-base text-white flex items-center gap-2">
                 ⚡ Coordinated Dispatch Recommendations

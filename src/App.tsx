@@ -6,8 +6,7 @@ import PredictiveReport from './components/PredictiveReport';
 import StatsLeaderboard from './components/StatsLeaderboard';
 import CivicAssistant from './components/CivicAssistant';
 import { WorkspaceHub } from './components/WorkspaceHub';
-import AdminDashboard from './components/AdminDashboard';
-import { io } from 'socket.io-client';
+import AgentPipeline from './components/AgentPipeline';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ShieldAlert,
@@ -26,12 +25,13 @@ import {
   Sparkles,
   RefreshCw,
   UserCheck,
-  BookOpen
+  BookOpen,
+  Layers
 } from 'lucide-react';
 
 export default function App() {
-  // Tabs: 'map' | 'predictive' | 'leaderboard' | 'assistant' | 'workspace' | 'admin'
-  const [activeTab, setActiveTab] = useState<'map' | 'predictive' | 'leaderboard' | 'assistant' | 'workspace' | 'admin'>('map');
+  // Tabs: 'map' | 'predictive' | 'leaderboard' | 'assistant' | 'workspace' | 'pipeline'
+  const [activeTab, setActiveTab] = useState<'map' | 'predictive' | 'leaderboard' | 'assistant' | 'workspace' | 'pipeline'>('map');
 
   // Issue Lists & Syncing
   const [issues, setIssues] = useState<Issue[]>([]);
@@ -52,7 +52,6 @@ export default function App() {
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newCat, setNewCat] = useState<IssueCategory>('pothole');
-  const [newImage, setNewImage] = useState<File | null>(null);
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
 
@@ -121,44 +120,9 @@ export default function App() {
 
   useEffect(() => {
     fetchIssues(true);
-    
-    // Real-time updates via WebSockets
-    const socket = io();
-    socket.on('issues_updated', (updatedIssues: Issue[]) => {
-      setIssues(updatedIssues);
-    });
-
-    return () => {
-      socket.disconnect();
-    };
   }, []);
 
-  
-  const subscribeToPush = async () => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-    try {
-      const res = await fetch('/api/vapidPublicKey');
-      const vapidPublicKey = await res.text();
-      const registration = await navigator.serviceWorker.ready;
-      
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: vapidPublicKey
-      });
-      
-      await fetch('/api/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(subscription)
-      });
-      alert('Subscribed to notifications!');
-    } catch (err) {
-      console.error('Failed to subscribe the user: ', err);
-    }
-  };
-
   // Post a new issue
-
   const handleReportIssueSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim() || !newDesc.trim() || newLat === null || newLng === null) return;
@@ -167,20 +131,17 @@ export default function App() {
     setApiWarning(null);
 
     try {
-      const formData = new FormData();
-      formData.append('title', newTitle.trim());
-      formData.append('description', newDesc.trim());
-      formData.append('category', newCat);
-      formData.append('latitude', newLat.toString());
-      formData.append('longitude', newLng.toString());
-      formData.append('reporter', currentUser);
-      if (newImage) {
-        formData.append('image', newImage);
-      }
-
       const res = await fetch('/api/issues', {
         method: 'POST',
-        body: formData
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: newTitle.trim(),
+          description: newDesc.trim(),
+          category: newCat,
+          latitude: newLat,
+          longitude: newLng,
+          reporter: currentUser
+        })
       });
 
       if (res.ok) {
@@ -356,23 +317,23 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen text-slate-200 bg-transparent flex flex-col font-sans antialiased">
+    <div className="min-h-screen bg-[#0a0a0a] text-slate-200 flex flex-col font-sans antialiased">
       {/* Top Professional Header Navigation */}
-      <header className="sticky top-0 z-40 glass-panel border-x-0 border-t-0 px-6 py-4 flex items-center justify-between gap-4">
+      <header className="sticky top-0 z-40 bg-[#0a0a0a] border-b border-white/5 px-6 py-4 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-amber-500 rounded-sm rotate-45 flex items-center justify-center shrink-0">
-            <span className="text-black font-black text-xs -rotate-45 font-mono">C</span>
+            <span className="text-black font-black text-xs -rotate-45 font-mono">P</span>
           </div>
           <div>
             <h1 className="font-bold text-base text-white tracking-tight flex items-center gap-1.5">
-              Community Hero <span className="text-[9px] bg-white/5 border border-white/5 text-slate-400 px-2 py-0.5 rounded font-mono font-medium">Valencia-Dolores</span>
+              PublicEye <span className="text-[9px] bg-white/5 border border-white/5 text-slate-400 px-2 py-0.5 rounded font-mono font-medium">Valencia-Dolores</span>
             </h1>
             <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest">Hyperlocal Auditing & Predictive Diagnostics</p>
           </div>
         </div>
 
         {/* Tab Selection Row */}
-        <nav className="hidden md:flex items-center gap-1.5 glass-button p-1 rounded-xl">
+        <nav className="hidden md:flex items-center gap-1.5 bg-white/[0.03] p-1 rounded-xl border border-white/5">
           <button
             onClick={() => setActiveTab('map')}
             className={`px-4 py-2 text-xs font-semibold rounded-lg flex items-center gap-2 cursor-pointer transition-all ${
@@ -423,6 +384,16 @@ export default function App() {
           >
             <BookOpen className="w-4 h-4" /> Workspace Hub
           </button>
+          <button
+            onClick={() => setActiveTab('pipeline')}
+            className={`px-4 py-2 text-xs font-semibold rounded-lg flex items-center gap-2 cursor-pointer transition-all ${
+              activeTab === 'pipeline'
+                ? 'bg-amber-500 text-black shadow-sm font-bold'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Layers className="w-4 h-4 text-amber-500" /> AI Agent Pipeline
+          </button>
         </nav>
 
         {/* Acting Active User Badge */}
@@ -433,7 +404,7 @@ export default function App() {
                 type="email"
                 value={tempUser}
                 onChange={(e) => setTempUser(e.target.value)}
-                className="glass-panel px-2 py-1 text-[11px] rounded font-mono text-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                className="bg-[#121212] border border-white/10 px-2 py-1 text-[11px] rounded font-mono text-white focus:outline-none focus:ring-1 focus:ring-amber-500"
                 required
               />
               <button
@@ -463,7 +434,7 @@ export default function App() {
       </header>
 
       {/* Mobile Tab Selection Header Row */}
-      <nav className="md:hidden flex items-center justify-around gap-1 glass-panel border-x-0 border-t-0 p-2 sticky top-[73px] z-30">
+      <nav className="md:hidden flex items-center justify-around gap-1 bg-[#0a0a0a] border-b border-white/5 p-2 sticky top-[73px] z-30">
         <button
           onClick={() => setActiveTab('map')}
           className={`flex-1 py-2 text-[10px] font-bold rounded-lg flex flex-col items-center justify-center cursor-pointer ${
@@ -505,12 +476,12 @@ export default function App() {
           <BookOpen className="w-4 h-4 mb-0.5" /> Workspace
         </button>
         <button
-          onClick={() => setActiveTab('admin')}
+          onClick={() => setActiveTab('pipeline')}
           className={`flex-1 py-2 text-[10px] font-bold rounded-lg flex flex-col items-center justify-center cursor-pointer ${
-            activeTab === 'admin' ? 'bg-amber-500 text-black shadow-sm' : 'text-slate-400'
+            activeTab === 'pipeline' ? 'bg-amber-500 text-black shadow-sm' : 'text-slate-400'
           }`}
         >
-          <ShieldAlert className="w-4 h-4 mb-0.5" /> Admin
+          <Layers className="w-4 h-4 mb-0.5" /> Pipeline
         </button>
       </nav>
 
@@ -526,7 +497,7 @@ export default function App() {
               className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full"
             >
               {/* Left sidebar: list with filters (col-span-4) */}
-              <div className="lg:col-span-4 glass-panel rounded-2xl p-5 flex flex-col h-[550px] overflow-hidden relative group">
+              <div className="lg:col-span-4 bg-white/[0.02] border border-white/5 rounded-2xl p-5 shadow-lg flex flex-col h-[550px] overflow-hidden">
                 <div className="space-y-4 mb-4">
                   <div className="flex items-center justify-between gap-2">
                     <h2 className="font-bold text-sm uppercase tracking-widest text-white">Active Reports</h2>
@@ -561,7 +532,7 @@ export default function App() {
                       <select
                         value={filterCategory}
                         onChange={(e) => setFilterCategory(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 text-[11px] font-medium px-3 py-2 rounded-lg text-slate-300 focus:outline-none cursor-pointer appearance-none glass-panel"
+                        className="w-full bg-white/5 border border-white/10 text-[11px] font-medium px-3 py-2 rounded-lg text-slate-300 focus:outline-none cursor-pointer appearance-none bg-[#121212]"
                       >
                         <option value="all">📁 All Categories</option>
                         <option value="pothole">Potholes</option>
@@ -578,7 +549,7 @@ export default function App() {
                       <select
                         value={filterStatus}
                         onChange={(e) => setFilterStatus(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 text-[11px] font-medium px-3 py-2 rounded-lg text-slate-300 focus:outline-none cursor-pointer appearance-none glass-panel"
+                        className="w-full bg-white/5 border border-white/10 text-[11px] font-medium px-3 py-2 rounded-lg text-slate-300 focus:outline-none cursor-pointer appearance-none bg-[#121212]"
                       >
                         <option value="all">⏱️ All Statuses</option>
                         <option value="reported">Reported</option>
@@ -604,10 +575,10 @@ export default function App() {
                         <div
                           key={issue.id}
                           onClick={() => setSelectedIssueId(issue.id)}
-                          className={`p-3.5 border rounded-xl text-left cursor-pointer transition-all duration-300 hover:translate-x-1 ${
+                          className={`p-3.5 border rounded-xl text-left cursor-pointer transition-all ${
                             isSelected
-                              ? 'glass-panel border-amber-500 text-white shadow-lg shadow-amber-500/10 scale-[0.98]'
-                              : 'bg-white/[0.02] border-white/5 hover:glass-panel text-slate-300'
+                              ? 'bg-white/10 border-amber-500 text-white shadow-md scale-[0.98]'
+                              : 'bg-white/[0.01] border-white/5 hover:bg-white/[0.04] text-slate-300'
                           } ${getCategoryColorBorder(issue.category)}`}
                         >
                           <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -636,11 +607,6 @@ export default function App() {
                           <p className={`text-[11px] line-clamp-2 leading-relaxed mb-2.5 ${isSelected ? 'text-slate-300' : 'text-slate-400'}`}>
                             {issue.description}
                           </p>
-                          {issue.address && (
-                            <p className="text-[9px] text-slate-500 mb-2 whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-1">
-                              <MapPin className="w-3 h-3 text-amber-500/50" /> {issue.address}
-                            </p>
-                          )}
 
                           <div className="flex items-center justify-between text-[10px] font-mono border-t pt-2 border-white/5">
                             <span className={isSelected ? 'text-slate-400' : 'text-slate-500'}>
@@ -683,7 +649,7 @@ export default function App() {
                     onUpdateStatus={handleUpdateStatus}
                   />
                 ) : (
-                  <div className="glass-panel border-0 rounded-2xl p-8 text-center flex flex-col items-center justify-center h-full shadow-lg text-slate-500">
+                  <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-8 text-center flex flex-col items-center justify-center h-full shadow-lg text-slate-500">
                     <Compass className="w-10 h-10 text-slate-600 mb-3" />
                     <h4 className="font-semibold text-slate-300 text-xs uppercase tracking-wider mb-1">Audit Details Inspector</h4>
                     <p className="text-xs text-slate-500 leading-relaxed">Select any reported issue on the map or left list to audit details, read safety advisories, or write comments.</p>
@@ -741,15 +707,16 @@ export default function App() {
               <WorkspaceHub issues={issues} currentUser={currentUser} />
             </motion.div>
           )}
-          {/* 6. Admin Dashboard */}
-          {activeTab === 'admin' && (
+
+          {/* 6. AI Agent Pipeline Handoff Loop & Diagram */}
+          {activeTab === 'pipeline' && (
             <motion.div
-              key="admin"
+              key="pipeline"
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
             >
-              <AdminDashboard issues={issues} />
+              <AgentPipeline />
             </motion.div>
           )}
         </AnimatePresence>
@@ -761,7 +728,7 @@ export default function App() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="glass-panel p-6 rounded-2xl shadow-2xl max-w-md w-full space-y-4 text-slate-200"
+            className="bg-[#121212] border border-white/10 p-6 rounded-2xl shadow-2xl max-w-md w-full space-y-4 text-slate-200"
           >
             <div className="flex items-center justify-between border-b border-white/5 pb-3">
               <h3 className="font-bold text-base text-white uppercase tracking-wider flex items-center gap-1.5">
@@ -848,7 +815,7 @@ export default function App() {
                 <select
                   value={newCat}
                   onChange={(e) => setNewCat(e.target.value as IssueCategory)}
-                  className="w-full bg-white/5 border border-white/10 text-xs px-3 py-2.5 rounded-lg text-white focus:outline-none cursor-pointer glass-panel"
+                  className="w-full bg-white/5 border border-white/10 text-xs px-3 py-2.5 rounded-lg text-white focus:outline-none cursor-pointer bg-[#121212]"
                 >
                   <option value="pothole">🔴 Potholes & Road Cracks</option>
                   <option value="water_leak">🔵 Water Line Leaks / Flooding</option>
@@ -882,16 +849,6 @@ export default function App() {
                 />
               </div>
 
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 mb-1 font-mono uppercase tracking-wider">Upload Image (Optional)</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setNewImage(e.target.files ? e.target.files[0] : null)}
-                  className="w-full bg-white/5 border border-white/10 text-xs px-3 py-2 rounded-lg text-slate-300 focus:outline-none focus:ring-1 focus:ring-amber-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-amber-500/20 file:text-amber-400 hover:file:bg-amber-500/30"
-                />
-              </div>
-
               <div className="flex items-center gap-1.5 justify-end border-t border-white/5 pt-3">
                 <button
                   type="button"
@@ -921,7 +878,7 @@ export default function App() {
 
       {/* API Key Sandbox Warning toast indicator */}
       {apiWarning && (
-        <div className="fixed bottom-6 right-6 z-50 glass-panel text-white px-4.5 py-3.5 rounded-xl shadow-2xl max-w-sm flex items-start gap-3">
+        <div className="fixed bottom-6 right-6 z-50 bg-[#121212] border border-white/10 text-white px-4.5 py-3.5 rounded-xl shadow-2xl max-w-sm flex items-start gap-3">
           <Sparkles className="w-5 h-5 text-amber-500 shrink-0 mt-0.5 animate-pulse" />
           <div className="text-xs">
             <span className="font-bold uppercase tracking-wider block text-amber-400">Sandbox Analytics Notice</span>
