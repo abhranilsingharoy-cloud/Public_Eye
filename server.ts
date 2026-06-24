@@ -304,7 +304,7 @@ User-selected category hint: "${category}"
 Provide the output strictly matching the schema with category, severity, safetyTips, suggestedAction, and tags.`;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
+        model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
           systemInstruction: 'You are a community-focused AI expert in municipal maintenance and public hazard mitigation. Your goal is to categorize and evaluate citizen complaints accurately to speed up response and ensure public safety.',
@@ -796,7 +796,7 @@ ${JSON.stringify(formattedIssues, null, 2)}
 Provide the analysis strictly matching the requested JSON schema. Analyze geo-temporal patterns, category clustering, and public safety implications to predict infrastructure fatigue and project optimal city dispatches.`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
+      model: 'gemini-2.5-flash',
       contents: prompt,
       config: {
         systemInstruction: `You are an expert civic data scientist and municipal predictive planner. Your job is to identify high-risk hotspots, forecast upcoming infrastructure failures, and outline smart joint dispatches to maximize municipal efficiency.`,
@@ -924,7 +924,7 @@ app.post('/api/chat-assistant', async (req, res) => {
     });
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
+      model: 'gemini-2.5-flash',
       contents,
       config: {
         systemInstruction: "You are the Civic AI Coprocessor for the Valencia-Dolores community. You help citizens audit neighborhood issues, suggest municipal escalation plans, draft formal complaint letters to Public Works, and explain how the community-driven leaderboard points work. Keep answers concise, helpful, and formatted beautifully in markdown."
@@ -970,7 +970,7 @@ app.post('/api/action-planner', async (req, res) => {
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
+      model: 'gemini-2.5-flash',
       contents: `Analyze these issues and generate an optimized Coordinated Sweep Proposal to group repairs together and minimize city budget and transit impact: ${JSON.stringify(formattedIssues)}`,
       config: {
         systemInstruction: "You are an expert city manager. Group geographical clusters and categories of issues into unified dispatch orders to reduce department overhead.",
@@ -998,6 +998,29 @@ app.post('/api/action-planner', async (req, res) => {
   }
 });
 
+// AI Draft Resolution Notes
+app.post('/api/draft-resolution', async (req, res) => {
+  const { description, category, title } = req.body;
+  const ai = getGeminiAI();
+
+  if (!ai) {
+    return res.json({ draft: `Simulated Sandbox Resolution: Addressed issue '${title}'. Area secured and verified safe. (Configure GEMINI_API_KEY for dynamic generation)` });
+  }
+
+  try {
+    const prompt = `You are a municipal works dispatcher. Write a professional, concise, one-sentence closing resolution note for the following citizen issue:\n\nTitle: ${title}\nCategory: ${category}\nDescription: ${description}\n\nDraft Note:`;
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+    });
+    
+    return res.json({ draft: response.text ? response.text.trim() : 'Resolution recorded.' });
+  } catch (error: any) {
+    console.error('Draft resolution error:', error);
+    return res.status(500).json({ error: 'Failed to generate draft' });
+  }
+});
+
 // AI Audio Briefing (TTS) Route
 app.post('/api/audio-briefing', async (req, res) => {
   const ai = getGeminiAI();
@@ -1012,9 +1035,9 @@ app.post('/api/audio-briefing', async (req, res) => {
   }
 
   try {
-    // First, let's ask gemini-3.5-flash to formulate an incredibly succinct newscast script
+    // First, let's ask gemini-2.5-flash to formulate an incredibly succinct newscast script
     const scriptResponse = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
+      model: 'gemini-2.5-flash',
       contents: `Generate a very short, friendly, professional community news brief (maximum 60 words, 3 sentences) summarizing these active reports: ${JSON.stringify(active.map((i: any) => i.title))}. Keep it encouraging and prompt citizens to keep voting!`,
     });
 

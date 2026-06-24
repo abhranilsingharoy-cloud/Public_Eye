@@ -397,7 +397,7 @@ I experienced a connection issue. However, based on local cache:
       </div>
 
       {/* Right panel: Conversational Chat Interface (col-span-7) */}
-      <div className="lg:col-span-7 bg-[#121212] border border-white/5 rounded-2xl flex flex-col h-[550px] shadow-xl overflow-hidden">
+      <div className="lg:col-span-7 bg-[#121212] border border-white/5 rounded-2xl flex flex-col h-[calc(100vh-180px)] min-h-[600px] max-h-[900px] shadow-xl overflow-hidden">
         {/* Chat header */}
         <div className="px-5 py-4 border-b border-white/5 bg-black/20 flex items-center justify-between">
           <div className="flex items-center gap-2.5">

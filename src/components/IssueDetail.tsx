@@ -121,6 +121,35 @@ export default function IssueDetail({
     setShowResolveForm(false);
   };
 
+  const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
+
+  const handleQuickResolve = async () => {
+    setIsGeneratingDraft(true);
+    setResolveNotes('Generating draft...');
+    try {
+      const response = await fetch('/api/draft-resolution', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: issue.title,
+          category: issue.category,
+          description: issue.description
+        })
+      });
+      const data = await response.json();
+      if (data.draft) {
+        setResolveNotes(data.draft);
+      } else {
+        setResolveNotes('Failed to generate draft.');
+      }
+    } catch (err) {
+      console.error(err);
+      setResolveNotes('Error generating draft. Please write manually.');
+    } finally {
+      setIsGeneratingDraft(false);
+    }
+  };
+
   const hasVoted = issue.votedUsers?.includes(currentUser);
 
   const getStatusDetails = (status: string) => {
@@ -673,20 +702,31 @@ export default function IssueDetail({
                     capturedType={resolutionMediaType}
                   />
                 </div>
-                <div className="flex items-center gap-1.5 mt-2 justify-end">
-                  <button
-                    type="submit"
-                    className="bg-emerald-500 hover:bg-emerald-600 text-black font-bold text-xs px-3 py-1.5 rounded-md cursor-pointer"
-                  >
-                    Confirm Resolution
-                  </button>
+                <div className="flex items-center gap-1.5 mt-2 justify-between">
                   <button
                     type="button"
-                    onClick={() => setShowResolveForm(false)}
-                    className="bg-white/5 hover:bg-white/10 text-slate-300 text-xs px-3 py-1.5 rounded-md cursor-pointer"
+                    onClick={handleQuickResolve}
+                    disabled={isGeneratingDraft}
+                    className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/25 text-[10px] uppercase font-bold tracking-wider px-2.5 py-1.5 rounded-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors"
                   >
-                    Cancel
+                    <Sparkles className={`w-3 h-3 ${isGeneratingDraft ? 'animate-spin' : ''}`} />
+                    {isGeneratingDraft ? 'Drafting...' : 'AI Quick Resolve'}
                   </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="submit"
+                      className="bg-emerald-500 hover:bg-emerald-600 text-black font-bold text-xs px-3 py-1.5 rounded-md cursor-pointer"
+                    >
+                      Confirm Resolution
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowResolveForm(false)}
+                      className="bg-white/5 hover:bg-white/10 text-slate-300 text-xs px-3 py-1.5 rounded-md cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               </motion.form>
             )}

@@ -694,7 +694,7 @@ export default function App() {
       </nav>
 
       {/* Main Content Area */}
-      <main className="flex-1 p-6 max-w-7xl w-full mx-auto">
+      <main className="flex-1 p-4 md:p-6 lg:p-8 w-full max-w-[1800px] mx-auto">
         <AnimatePresence mode="wait">
           {/* 0. Home & Handbook View */}
           {activeTab === 'home' && (
@@ -1440,7 +1440,7 @@ export default function App() {
               className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full"
             >
               {/* Left sidebar: list with filters (col-span-4) */}
-              <div className="lg:col-span-4 bg-white/[0.02] border border-white/5 rounded-2xl p-5 shadow-lg flex flex-col h-[550px] overflow-hidden">
+              <div className="lg:col-span-4 bg-white/[0.02] border border-white/5 rounded-2xl p-5 shadow-lg flex flex-col h-[calc(100vh-180px)] min-h-[600px] max-h-[900px] overflow-hidden">
                 <div className="space-y-4 mb-4">
                   <div className="flex items-center justify-between gap-2">
                     <h2 className="font-bold text-sm uppercase tracking-widest text-white">Active Reports</h2>
@@ -1581,7 +1581,7 @@ export default function App() {
               </div>
 
               {/* Right Sidebar Details Inspector (col-span-3) */}
-              <div className="lg:col-span-3 h-[550px] overflow-hidden">
+              <div className="lg:col-span-3 h-[calc(100vh-180px)] min-h-[600px] max-h-[900px] overflow-hidden">
                 {selectedIssue ? (
                   <IssueDetail
                     issue={selectedIssue}
