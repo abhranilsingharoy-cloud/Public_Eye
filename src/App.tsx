@@ -7,6 +7,7 @@ import StatsLeaderboard from './components/StatsLeaderboard';
 import CivicAssistant from './components/CivicAssistant';
 import { WorkspaceHub } from './components/WorkspaceHub';
 import AgentPipeline from './components/AgentPipeline';
+import SafeGuardHub from './components/SafeGuardHub';
 import InteractiveLogo, { generateSvgCode } from './components/InteractiveLogo';
 import CameraMediaCapture from './components/CameraMediaCapture';
 import { motion, AnimatePresence } from 'motion/react';
@@ -87,8 +88,8 @@ export default function App() {
     };
   }, []);
 
-  // Tabs: 'home' | 'map' | 'predictive' | 'leaderboard' | 'assistant' | 'workspace' | 'pipeline'
-  const [activeTab, setActiveTab] = useState<'home' | 'map' | 'predictive' | 'leaderboard' | 'assistant' | 'workspace' | 'pipeline'>('home');
+  // Tabs: 'home' | 'map' | 'predictive' | 'leaderboard' | 'assistant' | 'workspace' | 'pipeline' | 'safeguard'
+  const [activeTab, setActiveTab] = useState<'home' | 'map' | 'predictive' | 'leaderboard' | 'assistant' | 'workspace' | 'pipeline' | 'safeguard'>('home');
   const [handbookSubTab, setHandbookSubTab] = useState<'overview' | 'workflow' | 'features' | 'faq'>('overview');
 
   // Logo Customization Global State
@@ -594,6 +595,16 @@ export default function App() {
           >
             <Layers className="w-4 h-4 text-amber-500" /> AI Agent Pipeline
           </button>
+          <button
+            onClick={() => setActiveTab('safeguard')}
+            className={`px-4 py-2 text-xs font-semibold rounded-lg flex items-center gap-2 cursor-pointer transition-all ${
+              activeTab === 'safeguard'
+                ? 'bg-emerald-500 text-black shadow-sm font-bold'
+                : 'text-emerald-500/90 hover:text-emerald-400 font-bold bg-emerald-500/5 border border-emerald-500/10'
+            }`}
+          >
+            <ShieldAlert className="w-4 h-4 animate-pulse" /> SafeGuard Hub
+          </button>
         </nav>
 
         {/* Acting Active User Badge */}
@@ -690,6 +701,14 @@ export default function App() {
           }`}
         >
           <Layers className="w-4 h-4 mb-0.5" /> Pipeline
+        </button>
+        <button
+          onClick={() => setActiveTab('safeguard')}
+          className={`flex-1 py-2 text-[10px] font-bold rounded-lg flex flex-col items-center justify-center cursor-pointer ${
+            activeTab === 'safeguard' ? 'bg-emerald-500 text-black shadow-sm font-bold' : 'text-emerald-400 font-bold bg-emerald-500/5 border border-emerald-500/10'
+          }`}
+        >
+          <ShieldAlert className="w-4 h-4 mb-0.5" /> SafeGuard
         </button>
       </nav>
 
@@ -1661,6 +1680,18 @@ export default function App() {
               exit={{ opacity: 0, y: -15 }}
             >
               <AgentPipeline />
+            </motion.div>
+          )}
+
+          {/* 7. Women's SafeGuard Hub */}
+          {activeTab === 'safeguard' && (
+            <motion.div
+              key="safeguard"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+            >
+              <SafeGuardHub currentUser={currentUser} />
             </motion.div>
           )}
         </AnimatePresence>
