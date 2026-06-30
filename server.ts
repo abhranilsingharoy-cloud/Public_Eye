@@ -33,6 +33,9 @@ app.use('/api/safeguard', safeguardRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api', aiRoutes);
 
+// Export the app for Vercel serverless functions
+export default app;
+
 // Vite middleware for development or serving index.html in production
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
@@ -54,4 +57,7 @@ async function startServer() {
   });
 }
 
-startServer();
+// Only start the Express listener if not running in a Vercel Serverless environment
+if (!process.env.VERCEL) {
+  startServer();
+}
