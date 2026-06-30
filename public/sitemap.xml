@@ -2,29 +2,29 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <!-- Since PublicEye is a Single Page Application, the main URL is the primary entry point -->
   <url>
-    <loc>https://publiceye.local/</loc>
+    <loc>https://public-eye-peach.vercel.app/</loc>
     <lastmod>2026-06-30</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <!-- Simulating dynamic paths that search engines could theoretically index if SSR was present -->
   <url>
-    <loc>https://publiceye.local/?tab=map</loc>
+    <loc>https://public-eye-peach.vercel.app/?tab=map</loc>
     <changefreq>hourly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://publiceye.local/?tab=safeguard</loc>
+    <loc>https://public-eye-peach.vercel.app/?tab=safeguard</loc>
     <changefreq>always</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://publiceye.local/?tab=predictive</loc>
+    <loc>https://public-eye-peach.vercel.app/?tab=predictive</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://publiceye.local/?tab=leaderboard</loc>
+    <loc>https://public-eye-peach.vercel.app/?tab=leaderboard</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
   </url>
