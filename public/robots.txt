@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+# Prevent indexing of backend api paths just in case they are ever crawled
+Disallow: /api/
+
+Sitemap: https://publiceye.local/sitemap.xml
