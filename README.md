@@ -30,7 +30,7 @@
   
   [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](#)
   [![Platform](https://img.shields.io/badge/platform-React%20%7C%20Node%20%7C%20Vite-blue.svg)](#)
-  [![AI Core](https://img.shields.io/badge/AI_Engine-Gemini--3.5--Flash-orange.svg)](#)
+  [![AI Core](https://img.shields.io/badge/AI_Engine-Gemini--Flash-orange.svg)](#)
   [![License](https://img.shields.io/badge/security-hardened-success.svg)](#)
 </div>
 
@@ -38,9 +38,20 @@
 
 ## 📖 Executive Summary
 
-**PublicEye** is an enterprise-grade civic technology platform designed to transform traditional, high-overhead 311 municipal reporting systems into a decentralized, self-governing physical-audit network. Built specifically for the **Valencia-Dolores** municipal district, PublicEye introduces peer-to-peer auditing consensus coupled with machine-learning-driven predictive analytics to discover, verify, escalate, and resolve local physical infrastructure failures (e.g., structural cracks, electrical exposure, hazardous leaks, and public lighting disruptions) without middleman friction.
+**PublicEye** is an enterprise-grade civic technology platform designed to transform traditional, high-overhead 311 municipal reporting systems into a decentralized, self-governing physical-audit network. Built specifically for modern urban environments, PublicEye introduces peer-to-peer auditing consensus coupled with machine-learning-driven predictive analytics to discover, verify, escalate, and resolve local physical infrastructure failures (e.g., structural cracks, electrical exposure, hazardous leaks, and public lighting disruptions) without middleman friction.
 
-Through a multi-agent routing, clustering, and deduplication logic, PublicEye matches human reporting with deep LLM classification and automated verification, rewarding active field inspectors on a public gamified leaderboard.
+Additionally, PublicEye integrates a mission-critical **Women's SafeGuard Hub**—an emergency response feature that allows citizens to broadcast distress signals directly to local precincts and NGOs, fully synchronized with Google Workspace and municipal dashboards.
+
+---
+
+## 🚀 Key Features
+
+*   **Hyperlocal Issue Tracking:** Interactive maps powered by advanced clustering algorithms, allowing citizens to drop pins, upload evidentiary photos/videos, and log detailed structural failure notes.
+*   **Decentralized Peer Consensus (Ledger):** Issues are only dispatched when independently verified by local "Auditors." Gamified XP systems promote active civic engagement and discourage spam.
+*   **Women's SafeGuard Portal:** High-priority SOS broadcast relay routing instantly to verified NGO shelters, police response networks, and civic authorities.
+*   **AI Predictive Hotspots:** Leverages Google Gemini APIs to ingest environmental and historical data (e.g. soil compaction, storm surges) to predict infrastructure failure *before* it occurs.
+*   **Civic Copilot:** A robust conversational AI agent embedded directly in the platform to assist users with writing dispatch notes, querying SLA violations, and navigating city ordinances.
+*   **Modular Node.js Backend:** High-performance, scalable API micro-routing design ensures fast data retrieval and separation of concerns for issues, stats, AI, and SafeGuard logic.
 
 ---
 
@@ -50,7 +61,7 @@ PublicEye functions as a highly integrated cyber-physical system orchestrating r
 
 ### 🔄 Multi-Agent Verification & SLA Lifecycle
 
-```
+```text
 [ Citizen Report Filed ]
          │ (Includes Title, Category, Coordinates, Media Captures)
          ▼
@@ -70,22 +81,12 @@ PublicEye functions as a highly integrated cyber-physical system orchestrating r
          │
          ▼
 ┌────────────────────────────────────────────────────────┐
-│ 🤖 Agent 4: Jurisdictional Dispatch Router            │ ──► Matches GIS polygons; assigns SLA & drafts dispatch orders
+│ 🤖 Agent 4: Jurisdictional Dispatch Router             │ ──► Matches GIS polygons; assigns SLA & drafts dispatch orders
 └────────────────────────────────────────────────────────┘
          │
          ▼
 ┌────────────────────────────────────────────────────────┐
 │ 🤖 Agent 5: Automated SLA & Escalation Sweeper         │ ──► Monitors timeline; fires alerts for missed target resolutions
-└────────────────────────────────────────────────────────┘
-         │
-         ▼
-┌────────────────────────────────────────────────────────┐
-│ 🤖 Agent 6: Multi-Photo Resolution Verifier            │ ──► Analyzes before/after media matrices to authorize closure
-└────────────────────────────────────────────────────────┘
-         │
-         ▼
-┌────────────────────────────────────────────────────────┐
-│ 🤖 Agent 7: Grounded Natural Language Civic Assistant  │ ──► Grounded in active state; drafts letters & triggers APIs
 └────────────────────────────────────────────────────────┘
 ```
 
@@ -93,98 +94,103 @@ PublicEye functions as a highly integrated cyber-physical system orchestrating r
 
 ## 📂 Codebase & Directory Structure
 
-This project adopts a highly structured modular layout, cleanly splitting static client presentation from persistent API services and deep utility modules.
+The project has been aggressively refactored to support enterprise scale. The Node.js Express backend uses a modular routing schema alongside a blazingly fast React frontend built with Vite.
 
-```
-/ (Workspace Root)
-├── .env.example                      # Blueprint for environment variables & API tokens
-├── .gitignore                        # Standard exclusion rule list (Node modules, local artifacts)
-├── README.md                         # Detailed system technical documentation
-├── package.json                      # Build script pipelines and dependency declarations
-├── tsconfig.json                     # System compiler directives & path mapping configurations
-├── vite.config.ts                    # Build bundler configuration for Vite
-├── server.ts                         # Custom high-speed Express API backend server
-├── firebase-applet-config.json       # Config mappings for Firebase Firestore & Auth integration
-├── metadata.json                     # Sandbox context, permissions (geolocation, camera), capabilities
-│
-└── src/                              # Client Application Source Code
-    ├── main.tsx                      # SPA entry point
-    ├── index.css                     # Global styles, Tailwind imports, and font injections
-    ├── types.ts                      # Strict TypeScript interface and type contracts
-    ├── App.tsx                       # Orchestration layer, tab managers, and state controller
-    │
-    └── components/                   # Highly modular functional presentation units
-        ├── Map.tsx                   # Mapbox-style Google Maps wrapper with pins, paths & tools
-        ├── HeatmapLayer.tsx          # Real-time high-contrast hotspot visualization layer
-        ├── MultiPhotoCapture.tsx     # Custom camera viewfinder capturing multiple concurrent proofs
-        ├── IssueDetail.tsx           # Ticket inspector, verification histories, and chat feeds
-        ├── PredictiveReport.tsx      # Density calculations, forecasting, and hazard trends
-        ├── StatsLeaderboard.tsx      # Gamified civic audit stats and peer scoring indicators
-        ├── WorkspaceHub.tsx          # Integration workspace (Google Sheets, Docs, Calendar, Gmail)
-        ├── AgentPipeline.tsx         # Real-time visualization graph showing multi-agent operations
-        ├── InteractiveLogo.tsx       # System brand identity module with custom animations
-        ├── CameraMediaCapture.tsx    # Standard baseline camera / video feed component
-        └── CivicAssistant.tsx        # conversational terminal sidebar grounded in district data
+```text
+Public_Eye/
+├── server.ts                       # Lean Express Application Entrypoint
+├── package.json                    # Dependencies & Scripts
+├── firebase-applet-config.json     # Encrypted Firebase Credential Stub
+├── src/
+│   ├── routes/                     # Modular API Endpoints
+│   │   ├── aiRoutes.ts             # Gemini & Predictive Networking
+│   │   ├── issuesRoutes.ts         # Issue CRUD & Peer Voting
+│   │   ├── safeguardRoutes.ts      # Emergency SOS & SafeGuard API
+│   │   └── statsRoutes.ts          # Civic Leaderboard Aggregations
+│   ├── services/
+│   │   └── aiService.ts            # Google Gemini AI Initialization & Prompts
+│   ├── db/                         # Drizzle ORM / Database Models
+│   │   ├── index.ts                # DB connection pooling
+│   │   ├── issues_db.ts            # Issue operations
+│   │   └── safeguard_db.ts         # Emergency SOS logs
+│   ├── components/                 # React UI Components
+│   │   ├── Map.tsx                 # Core GIS interface
+│   │   ├── SafeGuardHub.tsx        # SOS Interface
+│   │   ├── CivicAssistant.tsx      # AI Chat Copilot
+│   │   └── AgentPipeline.tsx       # Diagnostics Visualizer
+│   ├── App.tsx                     # Main React Application State Manager
+│   ├── main.tsx                    # React DOM Entrypoint
+│   └── index.css                   # Tailwind CSS Configurations
+├── public/
+│   ├── robots.txt                  # Search Engine Directives
+│   └── sitemap.xml                 # SEO Architecture Map
+└── dist/                           # Production Bundles (Generated via Build)
 ```
 
 ---
 
-## ⚡ Core Advanced Features
+## 🛠️ Technology Stack
 
-### 1. High-Contrast Toggleable Heatmap Layer
-* Located in `src/components/HeatmapLayer.tsx` and integrated seamlessly inside the standard `Map.tsx` view.
-* Enables auditors to toggle dynamically between granular, color-coded category pins (**Standard View**) and a high-contrast density gradient map (**Heatmap View**).
-* Uses real-time geographic coordinates to plot hot-spots of outstanding infrastructure failures, prioritizing high-density hazard areas.
-
-### 2. Predictive Diagnostics & Local Relationship Engines
-* Located in the `IssueDetail.tsx` inspector panel.
-* Automatically uses the spherical Law of Cosines to fetch other active and resolved reports of the **same category** within the immediate vicinity.
-* Highlights recurring system weaknesses (e.g., persistent water main failures along Calle de Dolores) to alert public maintenance teams of underlying root causes.
-
-### 3. Multi-Photo Auditing Capture & Drag-Drop Fallback
-* Implemented in `src/components/MultiPhotoCapture.tsx`.
-* Allows active citizen inspectors to record multiple verification images in a single audit entry.
-* Integrates native device cameras with immediate canvas frame-grabbing, while providing a drag-and-drop file uploading wrapper for maximum accessibility.
+| Domain | Technology | Purpose |
+| :--- | :--- | :--- |
+| **Frontend** | React 19, Vite, TailwindCSS | High-performance, highly reactive SPA architecture. |
+| **Backend** | Node.js, Express | Modular routing layer for fast HTTP JSON API coordination. |
+| **Database** | PostgreSQL, Drizzle ORM | Type-safe, scalable relational data storage and schema management. |
+| **AI Integration** | Google Gemini 2.0 Flash | Drives Predictive Diagnostics, severity parsing, and the Civic Copilot. |
+| **Map Rendering** | @vis.gl/react-google-maps | Renders high-fidelity neighborhood boundaries and issue heatmaps. |
 
 ---
 
-## 🛠️ Production Build & Run Scripts
+## 💻 Local Development Setup
 
-Ensure you have a modern runtime environment active (`Node.js v18+` or higher).
+To run PublicEye locally and contribute to the civic tech ecosystem:
 
-### 1. Install Dependencies
+### 1. Prerequisites
+- **Node.js** (v20+ recommended)
+- **npm** (v10+)
+- **PostgreSQL** (running locally or via cloud URL)
+
+### 2. Environment Variables
+Copy `.env.example` to a new `.env` file and populate the necessary keys:
+```bash
+cp .env.example .env
+```
+Ensure you have a valid `GEMINI_API_KEY` for the AI functionalities and a `DATABASE_URL` pointing to your Postgres instance.
+
+### 3. Installation
+Install the required packages across both the client and server:
 ```bash
 npm install
 ```
 
-### 2. Set Up Environment Variables
-Create a `.env` file in the project root:
-```env
-GEMINI_API_KEY=your_google_gemini_api_key
-VITE_GOOGLE_MAPS_PLATFORM_KEY=your_google_maps_key
-```
-
-### 3. Start Development Server
+### 4. Running the Development Server
+Start the development server. This utilizes Vite in middleware mode alongside Express to seamlessly compile your React components on the fly:
 ```bash
 npm run dev
 ```
-*The application starts at `http://localhost:3000` with instant multi-agent operations.*
+Navigate to `http://localhost:3000` to interact with the PublicEye interface.
 
-### 4. Run Production Compilation
+### 5. Production Build
+To test the production asset bundling and compile the server cleanly via ESBuild:
 ```bash
 npm run build
-```
-*Compiles frontend assets using Vite and bundles server.ts into a standalone CommonJS module in `dist/`.*
-
-### 5. Launch Bundled Production App
-```bash
 npm start
 ```
 
 ---
 
-<div align="center">
-  <p className="font-mono text-slate-500 text-[10px] uppercase">
-    Designed for absolute high performance and technical precision.
-  </p>
-</div>
+## 🛡️ Security & Privacy
+
+PublicEye utilizes rigorous obfuscation for civilian identities. Emergency SOS requests triggered via the SafeGuard Hub are encrypted and routed strictly via TLS-verified channels. The public audit ledger obscures direct PII while validating geo-spatial proximity using one-way cryptographic hashing techniques.
+
+## 🤝 Contributing
+
+We welcome civic hackers, municipal IT staff, and AI enthusiasts.
+1. Fork the repository
+2. Create a Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
+*Developed with purpose by the PublicEye Citizen Alliance.*
