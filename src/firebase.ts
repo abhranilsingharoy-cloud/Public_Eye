@@ -1,19 +1,16 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User } from 'firebase/auth';
-import localFirebaseConfig from '../firebase-applet-config.json';
 
-// Use environment variables if set (perfect for safe public GitHub repos), otherwise fallback to the local config
+// Use environment variables for Firebase configuration (Standard for Vercel/Production)
 const metaEnv = (import.meta as any).env || {};
-const firebaseConfig = metaEnv.VITE_FIREBASE_API_KEY
-  ? {
-      projectId: metaEnv.VITE_FIREBASE_PROJECT_ID,
-      appId: metaEnv.VITE_FIREBASE_APP_ID,
-      apiKey: metaEnv.VITE_FIREBASE_API_KEY,
-      authDomain: metaEnv.VITE_FIREBASE_AUTH_DOMAIN,
-      storageBucket: metaEnv.VITE_FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: metaEnv.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    }
-  : localFirebaseConfig;
+const firebaseConfig = {
+  projectId: metaEnv.VITE_FIREBASE_PROJECT_ID || "",
+  appId: metaEnv.VITE_FIREBASE_APP_ID || "",
+  apiKey: metaEnv.VITE_FIREBASE_API_KEY || "",
+  authDomain: metaEnv.VITE_FIREBASE_AUTH_DOMAIN || "",
+  storageBucket: metaEnv.VITE_FIREBASE_STORAGE_BUCKET || "",
+  messagingSenderId: metaEnv.VITE_FIREBASE_MESSAGING_SENDER_ID || "",
+};
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
