@@ -17,7 +17,7 @@ dotenv.config();
 seedIssuesIfEmpty();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(process.cwd(), 'data');
 
 app.use(express.json());
