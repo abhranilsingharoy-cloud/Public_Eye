@@ -219,4 +219,5 @@ We welcome civic hackers, municipal IT staff, and AI enthusiasts.
 5. Open a Pull Request
 
 ---
-*Developed with purpose by the PublicEye Citizen Alliance.*
+*Developed with purpose by the PublicEye Citizen Alliance.
+Designed by Abhranil*
